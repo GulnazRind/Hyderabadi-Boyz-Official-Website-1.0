@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, STORAGE_BUCKET } from '../utils/supabaseClient';
-import { 
-  RiAddLine,
-  RiEditLine,
-  RiDeleteBinLine,
-  RiUserStarLine,
-  RiShieldStarLine,
-  RiUserHeartLine,
-  RiUserLine,
-  RiUploadLine,
-  RiCloseLine,
-  RiCheckLine,
-  RiImageAddLine
-} from '@remixicon/react';
+import { supabase } from '../utils/supabaseClient';
 
 const AdminGallery = () => {
   const [players, setPlayers] = useState([]);
@@ -37,6 +24,8 @@ const AdminGallery = () => {
     display_order: 0,
     is_active: true
   });
+
+  const STORAGE_BUCKET = 'player-images';
 
   useEffect(() => {
     const isAdmin = localStorage.getItem('adminAuth');
@@ -68,6 +57,14 @@ const AdminGallery = () => {
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -87,7 +84,25 @@ const AdminGallery = () => {
         .from(STORAGE_BUCKET)
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        // If bucket doesn't exist, create it
+        if (uploadError.message.includes('bucket not found')) {
+          const { error: createError } = await supabase
+            .storage
+            .createBucket(STORAGE_BUCKET, { public: true });
+            
+          if (createError) throw createError;
+          
+          // Retry upload
+          const { error: retryError } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(filePath, file);
+            
+          if (retryError) throw retryError;
+        } else {
+          throw uploadError;
+        }
+      }
 
       const { data: urlData } = supabase.storage
         .from(STORAGE_BUCKET)
@@ -96,7 +111,7 @@ const AdminGallery = () => {
       return urlData.publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
-      throw error;
+      throw new Error('Failed to upload image: ' + error.message);
     }
   };
 
@@ -107,6 +122,10 @@ const AdminGallery = () => {
     setUploading(true);
 
     try {
+      if (!formData.name.trim()) {
+        throw new Error('Player name is required');
+      }
+
       let imageUrl = editingPlayer?.image_url || '';
 
       if (imageFile) {
@@ -114,14 +133,14 @@ const AdminGallery = () => {
       }
 
       const playerData = {
-        name: formData.name,
+        name: formData.name.trim(),
         role: formData.role,
-        description: formData.description,
-        weight_category: formData.weight_category,
-        experience: formData.experience,
-        achievements: formData.achievements,
+        description: formData.description?.trim() || '',
+        weight_category: formData.weight_category?.trim() || '',
+        experience: formData.experience?.trim() || '',
+        achievements: formData.achievements?.trim() || '',
         display_order: parseInt(formData.display_order) || 0,
-        is_active: formData.is_active,
+        is_active: formData.is_active !== false,
         image_url: imageUrl,
         updated_at: new Date().toISOString()
       };
@@ -140,14 +159,14 @@ const AdminGallery = () => {
 
       if (result.error) throw result.error;
 
-      setSuccess(editingPlayer ? 'Player updated successfully!' : 'Player added successfully!');
+      setSuccess(editingPlayer ? '✅ Player updated successfully!' : '✅ Player added successfully!');
       resetForm();
       await fetchPlayers();
       
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error saving player:', error);
-      setError('Failed to save player: ' + error.message);
+      setError('❌ Failed to save player: ' + error.message);
     } finally {
       setUploading(false);
     }
@@ -164,11 +183,11 @@ const AdminGallery = () => {
 
       if (error) throw error;
       await fetchPlayers();
-      setSuccess('Player deleted successfully!');
+      setSuccess('✅ Player deleted successfully!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error deleting player:', error);
-      setError('Failed to delete player');
+      setError('❌ Failed to delete player: ' + error.message);
     }
   };
 
@@ -204,6 +223,7 @@ const AdminGallery = () => {
     });
     setImageFile(null);
     setImagePreview('');
+    setError('');
   };
 
   const getRoleLabel = (role) => {
@@ -225,7 +245,7 @@ const AdminGallery = () => {
   };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '3rem', color: '#FFD700' }}>Loading...</div>;
+    return <div style={{ textAlign: 'center', padding: '3rem', color: '#FFD700' }}>⏳ Loading...</div>;
   }
 
   return (
@@ -239,8 +259,7 @@ const AdminGallery = () => {
         gap: '1rem'
       }}>
         <h2 style={{ color: '#FFD700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <RiUserStarLine size={32} />
-          Gallery Management
+          🖼️ Gallery Management
         </h2>
         <button 
           className="btn btn-primary"
@@ -250,8 +269,7 @@ const AdminGallery = () => {
           }}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
-          <RiAddLine size={20} />
-          Add Player
+          ➕ Add Player
         </button>
       </div>
 
@@ -267,10 +285,8 @@ const AdminGallery = () => {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          {error}
-          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>
-            <RiCloseLine size={20} />
-          </button>
+          <span>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
         </div>
       )}
 
@@ -286,8 +302,7 @@ const AdminGallery = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <RiCheckLine size={20} />
-          {success}
+          ✅ {success}
         </div>
       )}
 
@@ -301,7 +316,7 @@ const AdminGallery = () => {
           marginBottom: '2rem'
         }}>
           <h3 style={{ color: '#FFD700', marginBottom: '1.5rem' }}>
-            {editingPlayer ? 'Edit Player' : 'Add New Player'}
+            {editingPlayer ? '✏️ Edit Player' : '➕ Add New Player'}
           </h3>
           <form onSubmit={handleSubmit}>
             <div style={{
@@ -310,21 +325,39 @@ const AdminGallery = () => {
               gap: '1.5rem'
             }}>
               <div className="form-group">
-                <label>Name *</label>
+                <label style={{ color: '#FFD700' }}>Name *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   required
                   placeholder="Player name"
+                  style={{
+                    width: '100%',
+                    padding: '0.8rem',
+                    background: '#0a0a0a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '1rem'
+                  }}
                 />
               </div>
               <div className="form-group">
-                <label>Role *</label>
+                <label style={{ color: '#FFD700' }}>Role *</label>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
                   required
+                  style={{
+                    width: '100%',
+                    padding: '0.8rem',
+                    background: '#0a0a0a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '1rem'
+                  }}
                 >
                   <option value="player">Player</option>
                   <option value="captain">Captain</option>
@@ -333,42 +366,79 @@ const AdminGallery = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>Weight Category</label>
+                <label style={{ color: '#FFD700' }}>Weight Category</label>
                 <input
                   type="text"
                   value={formData.weight_category}
                   onChange={(e) => setFormData({...formData, weight_category: e.target.value})}
                   placeholder="e.g., 70-80 kg"
+                  style={{
+                    width: '100%',
+                    padding: '0.8rem',
+                    background: '#0a0a0a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '1rem'
+                  }}
                 />
               </div>
               <div className="form-group">
-                <label>Experience</label>
+                <label style={{ color: '#FFD700' }}>Experience</label>
                 <input
                   type="text"
                   value={formData.experience}
                   onChange={(e) => setFormData({...formData, experience: e.target.value})}
                   placeholder="e.g., 5 years"
+                  style={{
+                    width: '100%',
+                    padding: '0.8rem',
+                    background: '#0a0a0a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '1rem'
+                  }}
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label>Description</label>
+              <label style={{ color: '#FFD700' }}>Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 placeholder="Player description..."
                 rows="2"
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  background: '#0a0a0a',
+                  border: '1px solid #333',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '1rem',
+                  resize: 'vertical'
+                }}
               />
             </div>
 
             <div className="form-group">
-              <label>Achievements</label>
+              <label style={{ color: '#FFD700' }}>Achievements</label>
               <input
                 type="text"
                 value={formData.achievements}
                 onChange={(e) => setFormData({...formData, achievements: e.target.value})}
                 placeholder="e.g., 2x National Champion"
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  background: '#0a0a0a',
+                  border: '1px solid #333',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '1rem'
+                }}
               />
             </div>
 
@@ -378,20 +448,38 @@ const AdminGallery = () => {
               gap: '1.5rem'
             }}>
               <div className="form-group">
-                <label>Display Order</label>
+                <label style={{ color: '#FFD700' }}>Display Order</label>
                 <input
                   type="number"
                   value={formData.display_order}
                   onChange={(e) => setFormData({...formData, display_order: parseInt(e.target.value) || 0})}
                   placeholder="0"
                   min="0"
+                  style={{
+                    width: '100%',
+                    padding: '0.8rem',
+                    background: '#0a0a0a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '1rem'
+                  }}
                 />
               </div>
               <div className="form-group">
-                <label>Active</label>
+                <label style={{ color: '#FFD700' }}>Active</label>
                 <select
                   value={formData.is_active ? 'true' : 'false'}
                   onChange={(e) => setFormData({...formData, is_active: e.target.value === 'true'})}
+                  style={{
+                    width: '100%',
+                    padding: '0.8rem',
+                    background: '#0a0a0a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '1rem'
+                  }}
                 >
                   <option value="true">Yes</option>
                   <option value="false">No</option>
@@ -401,7 +489,7 @@ const AdminGallery = () => {
 
             {/* Image Upload */}
             <div className="form-group">
-              <label>Player Image</label>
+              <label style={{ color: '#FFD700' }}>Player Image</label>
               <div style={{
                 border: '2px dashed rgba(255,215,0,0.3)',
                 borderRadius: '10px',
@@ -412,8 +500,6 @@ const AdminGallery = () => {
                 background: imagePreview ? 'rgba(255,215,0,0.05)' : 'transparent'
               }}
               onClick={() => document.getElementById('imageInput').click()}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FFD700'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255,215,0,0.3)'}
               >
                 <input
                   id="imageInput"
@@ -435,15 +521,14 @@ const AdminGallery = () => {
                       }}
                     />
                     <p style={{ color: '#888', fontSize: '0.9rem' }}>
-                      <RiImageAddLine size={16} style={{ verticalAlign: 'middle' }} />
-                      Click to change image
+                      🖼️ Click to change image
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <RiUploadLine size={40} color="#FFD700" />
+                    <div style={{ fontSize: '3rem' }}>📤</div>
                     <p style={{ color: '#888', marginTop: '0.5rem' }}>
-                      Click to upload image
+                      Click to upload image (Max 5MB)
                     </p>
                   </div>
                 )}
@@ -451,11 +536,39 @@ const AdminGallery = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <button type="submit" className="btn btn-primary" disabled={uploading}>
-                {uploading ? 'Saving...' : (editingPlayer ? 'Update Player' : 'Add Player')}
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                disabled={uploading}
+                style={{
+                  padding: '0.8rem 2rem',
+                  background: 'linear-gradient(135deg, #FFD700, #DAA520)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#0a0a0a',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  cursor: uploading ? 'not-allowed' : 'pointer',
+                  opacity: uploading ? 0.6 : 1
+                }}
+              >
+                {uploading ? '⏳ Saving...' : (editingPlayer ? '✅ Update Player' : '➕ Add Player')}
               </button>
-              <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                Cancel
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={resetForm}
+                style={{
+                  padding: '0.8rem 2rem',
+                  background: 'transparent',
+                  border: '2px solid #FFD700',
+                  borderRadius: '8px',
+                  color: '#FFD700',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                ❌ Cancel
               </button>
             </div>
           </form>
@@ -464,7 +577,7 @@ const AdminGallery = () => {
 
       {/* Players List */}
       <h3 style={{ color: '#FFD700', marginBottom: '1rem' }}>
-        All Players ({players.length})
+        📋 All Players ({players.length})
       </h3>
 
       {players.length === 0 ? (
@@ -512,9 +625,10 @@ const AdminGallery = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   background: 'rgba(255,215,0,0.05)',
-                  color: '#555'
+                  color: '#555',
+                  fontSize: '3rem'
                 }}>
-                  <RiUserLine size={48} />
+                  👤
                 </div>
               )}
               <div style={{ padding: '1rem' }}>
@@ -523,7 +637,7 @@ const AdminGallery = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <h4 style={{ color: '#FFD700' }}>{player.name}</h4>
+                  <h4 style={{ color: '#FFD700', margin: 0 }}>{player.name}</h4>
                   <span style={{
                     fontSize: '0.7rem',
                     padding: '0.2rem 0.6rem',
@@ -536,8 +650,13 @@ const AdminGallery = () => {
                   </span>
                 </div>
                 {player.weight_category && (
-                  <p style={{ color: '#888', fontSize: '0.85rem' }}>
-                    {player.weight_category}
+                  <p style={{ color: '#888', fontSize: '0.85rem', margin: '0.3rem 0' }}>
+                    ⚖️ {player.weight_category}
+                  </p>
+                )}
+                {player.experience && (
+                  <p style={{ color: '#888', fontSize: '0.85rem', margin: '0.3rem 0' }}>
+                    ⭐ {player.experience}
                   </p>
                 )}
                 {player.is_active === false && (
@@ -549,18 +668,32 @@ const AdminGallery = () => {
                   marginTop: '0.5rem'
                 }}>
                   <button
-                    className="btn btn-secondary"
                     onClick={() => editPlayer(player)}
-                    style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }}
+                    style={{
+                      padding: '0.3rem 0.8rem',
+                      fontSize: '0.8rem',
+                      background: 'rgba(255,215,0,0.1)',
+                      border: '1px solid #FFD700',
+                      borderRadius: '5px',
+                      color: '#FFD700',
+                      cursor: 'pointer'
+                    }}
                   >
-                    <RiEditLine size={16} />
+                    ✏️
                   </button>
                   <button
-                    className="btn btn-danger"
                     onClick={() => deletePlayer(player.id)}
-                    style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }}
+                    style={{
+                      padding: '0.3rem 0.8rem',
+                      fontSize: '0.8rem',
+                      background: 'rgba(231,76,60,0.1)',
+                      border: '1px solid #e74c3c',
+                      borderRadius: '5px',
+                      color: '#e74c3c',
+                      cursor: 'pointer'
+                    }}
                   >
-                    <RiDeleteBinLine size={16} />
+                    🗑️
                   </button>
                 </div>
               </div>

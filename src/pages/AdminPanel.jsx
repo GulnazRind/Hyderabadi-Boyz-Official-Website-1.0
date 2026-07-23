@@ -1,26 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
-import { 
-  RiTrophyLine,
-  RiUserLine,
-  RiUser3Line,
-  RiSwordLine,
-  RiDiceLine,
-  RiImageLine,
-  RiAddLine,
-  RiDeleteBinLine,
-  RiEditLine,
-  RiCheckLine,
-  RiCloseLine,
-  RiCalendarLine,
-  RiTimeLine,
-  RiMapPinLine,
-  RiShieldStarLine,
-  RiTeamLine,
-  RiUserStarLine,
-  RiUserHeartLine
-} from '@remixicon/react';
 
 const AdminPanel = () => {
   const [players, setPlayers] = useState([]);
@@ -45,9 +25,12 @@ const AdminPanel = () => {
   });
   const navigate = useNavigate();
 
+  // =============================================
+  // AUTHENTICATION CHECK
+  // =============================================
   useEffect(() => {
     const isAdmin = localStorage.getItem('adminAuth');
-    if (!isAdmin) {
+    if (isAdmin !== 'true') {
       navigate('/admin');
       return;
     }
@@ -65,8 +48,19 @@ const AdminPanel = () => {
       clearInterval(deleteInterval);
       clearInterval(statusInterval);
     };
-  }, [navigate]);
+  }, []);
 
+  // =============================================
+  // LOGOUT
+  // =============================================
+  const handleLogout = () => {
+    localStorage.removeItem('adminAuth');
+    navigate('/admin');
+  };
+
+  // =============================================
+  // FETCH ALL DATA
+  // =============================================
   const fetchAllData = async () => {
     try {
       setLoading(true);
@@ -106,6 +100,9 @@ const AdminPanel = () => {
     }
   };
 
+  // =============================================
+  // UPDATE TOURNAMENT STATUSES
+  // =============================================
   const updateTournamentStatuses = async () => {
     try {
       const now = new Date();
@@ -149,6 +146,9 @@ const AdminPanel = () => {
     }
   };
 
+  // =============================================
+  // DELETE OLD COMPLETED MATCHES
+  // =============================================
   const deleteOldCompletedMatches = async () => {
     try {
       const now = new Date();
@@ -173,6 +173,9 @@ const AdminPanel = () => {
     }
   };
 
+  // =============================================
+  // TOURNAMENT MANAGEMENT - COMPLETE
+  // =============================================
   const addTournament = async (e) => {
     e.preventDefault();
     setError('');
@@ -278,6 +281,9 @@ const AdminPanel = () => {
     }
   };
 
+  // =============================================
+  // GENERATE MATCHES - COMPLETE
+  // =============================================
   const generateMatches = async () => {
     if (!selectedCategory) {
       setError('Please select a weight category');
@@ -334,10 +340,6 @@ const AdminPanel = () => {
             break;
           }
         }
-
-        if (!matched) {
-          console.log(`⚠️ No unique opponent found for ${shuffled[i].fullname}`);
-        }
       }
 
       if (matchPairs.length === 0) {
@@ -367,7 +369,7 @@ const AdminPanel = () => {
       }
 
       await fetchAllData();
-      setSuccess(`✅ ${insertedCount} new unique matches generated! Auto-delete after ${autoDeleteDays} day(s).`);
+      setSuccess(`✅ ${insertedCount} new unique matches generated!`);
       setTimeout(() => setSuccess(''), 5000);
 
     } catch (error) {
@@ -378,6 +380,9 @@ const AdminPanel = () => {
     }
   };
 
+  // =============================================
+  // UPDATE MATCH RESULT - COMPLETE
+  // =============================================
   const updateMatchResult = async (matchId, winnerName) => {
     if (!winnerName) {
       setError('Please select a winner');
@@ -401,7 +406,7 @@ const AdminPanel = () => {
       
       await fetchAllData();
       setMatchResult({ matchId: '', winner: '' });
-      setSuccess(`✅ ${winnerName} is the winner! Match will auto-delete in ${autoDeleteDays} day(s).`);
+      setSuccess(`✅ ${winnerName} is the winner!`);
       setTimeout(() => setSuccess(''), 5000);
       
     } catch (error) {
@@ -412,6 +417,9 @@ const AdminPanel = () => {
     }
   };
 
+  // =============================================
+  // PLAYER MANAGEMENT - COMPLETE
+  // =============================================
   const approvePlayer = async (playerId) => {
     try {
       setError('');
@@ -460,6 +468,9 @@ const AdminPanel = () => {
     }
   };
 
+  // =============================================
+  // HELPER FUNCTIONS
+  // =============================================
   const getTimeRemaining = (tournament) => {
     if (!tournament.date || !tournament.time) return null;
     
@@ -509,57 +520,66 @@ const AdminPanel = () => {
     return diff < 24 * 60 * 60 * 1000;
   };
 
-  if (loading && tournaments.length === 0 && players.length === 0) {
+  const weightCategories = [...new Set(players.map(p => p.weightcategory))];
+
+  if (loading) {
     return (
-      <div style={{ 
-        textAlign: 'center', 
-        padding: '4rem', 
-        color: '#FFD700',
-        fontSize: '1.5rem'
-      }}>
+      <div style={{ textAlign: 'center', padding: '4rem', color: '#FFD700', fontSize: '1.5rem' }}>
         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
         Loading admin panel...
       </div>
     );
   }
 
-  const weightCategories = [...new Set(players.map(p => p.weightcategory))];
-
+  // =============================================
+  // RENDER - COMPLETE UI
+  // =============================================
   return (
     <div style={{ padding: '2rem 0' }}>
-      {/* Header */}
+      {/* Header with Logout */}
       <div style={{
         background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)',
-        padding: '2rem',
+        padding: '1.5rem 2rem',
         borderRadius: '15px',
         border: '2px solid #FFD700',
         marginBottom: '2rem',
-        textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden'
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem'
       }}>
-        <div style={{
-          position: 'absolute',
-          top: '-50%',
-          left: '-50%',
-          width: '200%',
-          height: '200%',
-          background: 'radial-gradient(circle, rgba(255,215,0,0.05) 0%, transparent 70%)',
-          animation: 'spin 20s linear infinite'
-        }} />
-        <h2 style={{
-          fontSize: '2.5rem',
-          color: '#FFD700',
-          margin: 0,
-          position: 'relative',
-          textShadow: '0 0 30px rgba(255,215,0,0.3)'
-        }}>
-          <RiShieldStarLine size={32} style={{ verticalAlign: 'middle' }} />
-          Admin Dashboard
-        </h2>
-        <p style={{ color: '#aaa', marginTop: '0.5rem', position: 'relative' }}>
-          Manage tournaments, players, matches and gallery
-        </p>
+        <div>
+          <h2 style={{ fontSize: '2rem', color: '#FFD700', margin: 0 }}>
+            ⚡ Admin Dashboard
+          </h2>
+          <p style={{ color: '#aaa', margin: '0.3rem 0 0 0' }}>
+            Manage tournaments, players, matches and gallery
+          </p>
+        </div>
+        <button 
+          onClick={handleLogout}
+          style={{
+            padding: '0.5rem 1.5rem',
+            background: 'rgba(231, 76, 60, 0.2)',
+            color: '#e74c3c',
+            border: '1px solid #e74c3c',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#e74c3c';
+            e.target.style.color = 'white';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'rgba(231, 76, 60, 0.2)';
+            e.target.style.color = '#e74c3c';
+          }}
+        >
+          🚪 Logout
+        </button>
       </div>
 
       {/* Error/Success Messages */}
@@ -577,18 +597,7 @@ const AdminPanel = () => {
           alignItems: 'center'
         }}>
           <span>{error}</span>
-          <button 
-            onClick={() => setError('')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#e74c3c',
-              fontSize: '1.2rem',
-              cursor: 'pointer'
-            }}
-          >
-            <RiCloseLine size={20} />
-          </button>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: '#e74c3c', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
         </div>
       )}
       
@@ -600,13 +609,8 @@ const AdminPanel = () => {
           background: 'rgba(46, 204, 113, 0.2)',
           border: '1px solid #2ecc71',
           color: '#2ecc71',
-          textAlign: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem'
+          textAlign: 'center'
         }}>
-          <RiCheckLine size={20} />
           {success}
         </div>
       )}
@@ -614,22 +618,22 @@ const AdminPanel = () => {
       {/* Tabs */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
         gap: '1rem',
         marginBottom: '2rem'
       }}>
         {[
-          { id: 'tournaments', icon: <RiTrophyLine size={22} />, label: 'Tournaments', count: tournaments.length },
-          { id: 'players', icon: <RiUserLine size={22} />, label: 'Players', count: players.length },
-          { id: 'matches', icon: <RiSwordLine size={22} />, label: 'Matches', count: matches.length },
-          { id: 'generate', icon: <RiDiceLine size={22} />, label: 'Generate', count: '' },
-          { id: 'gallery', icon: <RiImageLine size={22} />, label: 'Gallery', count: '' }
+          { id: 'tournaments', label: '🏆 Tournaments', count: tournaments.length },
+          { id: 'players', label: '👤 Players', count: players.length },
+          { id: 'matches', label: '⚔️ Matches', count: matches.length },
+          { id: 'generate', label: '🎲 Generate', count: '' },
+          { id: 'gallery', label: '🖼️ Gallery', count: '' }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              padding: '1rem',
+              padding: '0.8rem',
               background: activeTab === tab.id 
                 ? 'linear-gradient(135deg, #FFD700, #DAA520)'
                 : 'rgba(26, 26, 26, 0.8)',
@@ -637,17 +641,12 @@ const AdminPanel = () => {
               border: activeTab === tab.id ? 'none' : '2px solid #FFD700',
               borderRadius: '10px',
               cursor: 'pointer',
-              fontSize: '1rem',
+              fontSize: '0.9rem',
               fontWeight: '600',
               transition: 'all 0.3s ease',
-              boxShadow: activeTab === tab.id ? '0 5px 20px rgba(255,215,0,0.3)' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
+              boxShadow: activeTab === tab.id ? '0 5px 20px rgba(255,215,0,0.3)' : 'none'
             }}
           >
-            {tab.icon}
             {tab.label}
             {tab.count !== '' && (
               <span style={{
@@ -656,7 +655,7 @@ const AdminPanel = () => {
                 background: activeTab === tab.id ? 'rgba(0,0,0,0.2)' : 'rgba(255,215,0,0.2)',
                 padding: '0.1rem 0.6rem',
                 borderRadius: '20px',
-                fontSize: '0.8rem'
+                fontSize: '0.7rem'
               }}>
                 {tab.count}
               </span>
@@ -666,7 +665,7 @@ const AdminPanel = () => {
       </div>
 
       {/* =============================================
-          TOURNAMENTS TAB
+          TOURNAMENTS TAB - COMPLETE
           ============================================= */}
       {activeTab === 'tournaments' && (
         <div>
@@ -678,17 +677,7 @@ const AdminPanel = () => {
             border: '1px solid rgba(255,215,0,0.2)',
             marginBottom: '2rem'
           }}>
-            <h3 style={{
-              color: '#FFD700',
-              marginBottom: '1.5rem',
-              fontSize: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <RiAddLine size={24} />
-              Create New Tournament
-            </h3>
+            <h3 style={{ color: '#FFD700', marginBottom: '1.5rem' }}>➕ Create New Tournament</h3>
             <form onSubmit={addTournament}>
               <div style={{
                 display: 'grid',
@@ -842,32 +831,18 @@ const AdminPanel = () => {
                   fontSize: '1.1rem',
                   fontWeight: 'bold',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
+                  transition: 'all 0.3s ease'
                 }}
                 disabled={loading}
-                onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
               >
-                {loading ? '⏳ Creating...' : <><RiAddLine size={20} /> Create Tournament</>}
+                {loading ? '⏳ Creating...' : '🏆 Create Tournament'}
               </button>
             </form>
           </div>
 
           {/* Tournaments List */}
-          <h3 style={{
-            color: '#FFD700',
-            marginBottom: '1.5rem',
-            fontSize: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}>
-            <RiTrophyLine size={24} />
-            All Tournaments ({tournaments.length})
+          <h3 style={{ color: '#FFD700', marginBottom: '1.5rem' }}>
+            📋 All Tournaments ({tournaments.length})
           </h3>
           
           {tournaments.length === 0 ? (
@@ -878,15 +853,12 @@ const AdminPanel = () => {
               borderRadius: '15px',
               border: '1px dashed rgba(255,215,0,0.3)'
             }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
-              <p style={{ color: '#888', fontSize: '1.1rem' }}>
-                No tournaments yet. Create your first tournament above!
-              </p>
+              <p style={{ color: '#888', fontSize: '1.1rem' }}>No tournaments yet. Create your first tournament above!</p>
             </div>
           ) : (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
               gap: '1.5rem'
             }}>
               {tournaments.map(tournament => {
@@ -932,38 +904,17 @@ const AdminPanel = () => {
                        tournament.status === 'completed' ? '✅ Completed' : '📅 Upcoming'}
                     </div>
                     
-                    <h3 style={{
-                      color: '#FFD700',
-                      fontSize: '1.3rem',
-                      marginBottom: '0.5rem',
-                      paddingRight: '80px'
-                    }}>
-                      <RiTrophyLine size={20} style={{ verticalAlign: 'middle' }} />
-                      {tournament.name}
+                    <h3 style={{ color: '#FFD700', fontSize: '1.3rem', marginBottom: '0.5rem', paddingRight: '80px' }}>
+                      🏆 {tournament.name}
                     </h3>
                     
                     <div style={{ color: '#ccc', lineHeight: '1.8' }}>
-                      <p>
-                        <RiCalendarLine size={16} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
-                        {new Date(tournament.date).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
-                      <p>
-                        <RiTimeLine size={16} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
-                        {tournament.time}
-                      </p>
-                      <p>
-                        <RiMapPinLine size={16} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
-                        {tournament.location}
-                      </p>
+                      <p>📅 Date: {new Date(tournament.date).toLocaleDateString()}</p>
+                      <p>⏰ Time: {tournament.time}</p>
+                      <p>📍 Location: {tournament.location}</p>
                       <p><strong>Category:</strong> {tournament.category}</p>
                       <p><strong>Duration:</strong> {tournament.duration_hours || 4} hours</p>
-                      {tournament.description && (
-                        <p style={{ color: '#888' }}>{tournament.description}</p>
-                      )}
+                      {tournament.description && <p style={{ color: '#888' }}>{tournament.description}</p>}
                     </div>
 
                     {tournament.status === 'upcoming' && timeRemaining && (
@@ -975,13 +926,8 @@ const AdminPanel = () => {
                         border: '1px solid rgba(255,215,0,0.2)',
                         textAlign: 'center'
                       }}>
-                        <RiTimeLine size={18} style={{ verticalAlign: 'middle' }} />
-                        <span style={{ color: '#888' }}> Time Remaining: </span>
-                        <span style={{ 
-                          color: '#FFD700', 
-                          fontWeight: 'bold',
-                          fontSize: '1.1rem'
-                        }}>
+                        <span style={{ color: '#888' }}>⏳ Time Remaining: </span>
+                        <span style={{ color: '#FFD700', fontWeight: 'bold', fontSize: '1.1rem' }}>
                           {timeRemaining}
                         </span>
                       </div>
@@ -996,9 +942,7 @@ const AdminPanel = () => {
                         border: '1px solid #2ecc71',
                         textAlign: 'center'
                       }}>
-                        <span style={{ color: '#2ecc71', fontWeight: 'bold' }}>
-                          🔴 Tournament is LIVE!
-                        </span>
+                        <span style={{ color: '#2ecc71', fontWeight: 'bold' }}>🔴 Tournament is LIVE!</span>
                       </div>
                     )}
 
@@ -1011,9 +955,7 @@ const AdminPanel = () => {
                         border: '1px solid #3498db',
                         textAlign: 'center'
                       }}>
-                        <span style={{ color: '#3498db', fontWeight: 'bold' }}>
-                          ✅ Tournament Completed
-                        </span>
+                        <span style={{ color: '#3498db', fontWeight: 'bold' }}>✅ Tournament Completed</span>
                       </div>
                     )}
                     
@@ -1026,9 +968,7 @@ const AdminPanel = () => {
                       paddingTop: '1.5rem'
                     }}>
                       <button 
-                        onClick={() => {
-                          window.location.href = `/register?tournament=${tournament.id}`;
-                        }}
+                        onClick={() => { window.location.href = `/register?tournament=${tournament.id}`; }}
                         style={{
                           flex: 1,
                           padding: '0.7rem',
@@ -1037,14 +977,10 @@ const AdminPanel = () => {
                           border: 'none',
                           borderRadius: '8px',
                           cursor: 'pointer',
-                          fontWeight: 'bold',
-                          transition: 'all 0.3s ease'
+                          fontWeight: 'bold'
                         }}
-                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
-                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                       >
-                        <RiUserAddLine size={16} style={{ verticalAlign: 'middle' }} />
-                        Register Now
+                        📝 Register Now
                       </button>
                       
                       <select
@@ -1072,20 +1008,10 @@ const AdminPanel = () => {
                           color: '#e74c3c',
                           border: '1px solid #e74c3c',
                           borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          fontWeight: '600'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = '#e74c3c';
-                          e.target.style.color = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = 'rgba(231, 76, 60, 0.2)';
-                          e.target.style.color = '#e74c3c';
+                          cursor: 'pointer'
                         }}
                       >
-                        <RiDeleteBinLine size={16} style={{ verticalAlign: 'middle' }} />
+                        🗑️ Delete
                       </button>
                     </div>
                   </div>
@@ -1097,19 +1023,12 @@ const AdminPanel = () => {
       )}
 
       {/* =============================================
-          PLAYERS TAB
+          PLAYERS TAB - COMPLETE
           ============================================= */}
       {activeTab === 'players' && (
         <div>
-          <h3 style={{ 
-            color: '#FFD700', 
-            marginBottom: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}>
-            <RiUserLine size={24} />
-            Registered Players ({players.length})
+          <h3 style={{ color: '#FFD700', marginBottom: '1.5rem' }}>
+            👥 Registered Players ({players.length})
           </h3>
           
           {players.length === 0 ? (
@@ -1120,15 +1039,12 @@ const AdminPanel = () => {
               borderRadius: '15px',
               border: '1px dashed rgba(255,215,0,0.3)'
             }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-              <p style={{ color: '#888', fontSize: '1.1rem' }}>
-                No players registered yet.
-              </p>
+              <p style={{ color: '#888', fontSize: '1.1rem' }}>No players registered yet.</p>
             </div>
           ) : (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: '1.5rem'
             }}>
               {players.map(player => (
@@ -1156,16 +1072,7 @@ const AdminPanel = () => {
                     alignItems: 'start',
                     marginBottom: '0.5rem'
                   }}>
-                    <h3 style={{
-                      color: '#FFD700',
-                      fontSize: '1.2rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem'
-                    }}>
-                      <RiUserLine size={18} />
-                      {player.fullname}
-                    </h3>
+                    <h3 style={{ color: '#FFD700', fontSize: '1.2rem' }}>👤 {player.fullname}</h3>
                     <span style={{
                       padding: '0.3rem 0.8rem',
                       borderRadius: '20px',
@@ -1180,12 +1087,11 @@ const AdminPanel = () => {
                   </div>
                   
                   <div style={{ color: '#ccc', lineHeight: '2' }}>
-                    <p><RiUser3Line size={14} style={{ verticalAlign: 'middle' }} /> Father: {player.fathername || 'N/A'}</p>
-                    <p><RiUserLine size={14} style={{ verticalAlign: 'middle' }} /> CNIC: {player.cnic}</p>
-                    <p><RiPhoneLine size={14} style={{ verticalAlign: 'middle' }} /> {player.phone}</p>
-                    <p><RiScaleLine size={14} style={{ verticalAlign: 'middle' }} /> {player.weightcategory}</p>
-                    <p><RiStarLine size={14} style={{ verticalAlign: 'middle' }} /> {player.experience}</p>
-                    <p><RiTeamLine size={14} style={{ verticalAlign: 'middle' }} /> {player.interestedinteam}</p>
+                    <p>📱 Phone: {player.phone}</p>
+                    <p>⚖️ Weight: {player.weightcategory}</p>
+                    <p>⭐ Experience: {player.experience}</p>
+                    <p>💪 Dominant: {player.dominantarm}</p>
+                    <p>🤝 Interested: {player.interestedinteam}</p>
                   </div>
                   
                   <div style={{
@@ -1206,18 +1112,10 @@ const AdminPanel = () => {
                           border: 'none',
                           borderRadius: '8px',
                           cursor: 'pointer',
-                          fontWeight: '600',
-                          transition: 'all 0.3s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.3rem'
+                          fontWeight: '600'
                         }}
-                        onMouseEnter={(e) => e.target.style.background = '#27ae60'}
-                        onMouseLeave={(e) => e.target.style.background = '#2ecc71'}
                       >
-                        <RiCheckLine size={16} />
-                        Approve
+                        ✅ Approve
                       </button>
                     )}
                     <button 
@@ -1228,23 +1126,10 @@ const AdminPanel = () => {
                         color: '#e74c3c',
                         border: '1px solid #e74c3c',
                         borderRadius: '8px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        fontWeight: '600',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.3rem'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = '#e74c3c';
-                        e.target.style.color = 'white';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = 'rgba(231, 76, 60, 0.2)';
-                        e.target.style.color = '#e74c3c';
+                        cursor: 'pointer'
                       }}
                     >
-                      <RiDeleteBinLine size={16} />
+                      🗑️
                     </button>
                   </div>
                 </div>
@@ -1255,7 +1140,7 @@ const AdminPanel = () => {
       )}
 
       {/* =============================================
-          MATCHES TAB
+          MATCHES TAB - COMPLETE
           ============================================= */}
       {activeTab === 'matches' && (
         <div>
@@ -1267,25 +1152,14 @@ const AdminPanel = () => {
             flexWrap: 'wrap',
             gap: '1rem'
           }}>
-            <h3 style={{ 
-              color: '#FFD700', 
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <RiSwordLine size={24} />
-              All Matches ({matches.length})
-            </h3>
+            <h3 style={{ color: '#FFD700', margin: 0 }}>⚔️ All Matches ({matches.length})</h3>
             <div style={{
               padding: '0.5rem 1rem',
               background: 'rgba(255,215,0,0.1)',
               borderRadius: '8px',
               border: '1px solid rgba(255,215,0,0.2)'
             }}>
-              <RiTimeLine size={16} style={{ verticalAlign: 'middle' }} />
-              <span style={{ color: '#888' }}> Auto-delete after: </span>
-              <span style={{ color: '#FFD700', fontWeight: 'bold' }}>
+              ⏳ Auto-delete after: <span style={{ color: '#FFD700', fontWeight: 'bold' }}>
                 {autoDeleteDays} day{autoDeleteDays > 1 ? 's' : ''}
               </span>
             </div>
@@ -1299,15 +1173,12 @@ const AdminPanel = () => {
               borderRadius: '15px',
               border: '1px dashed rgba(255,215,0,0.3)'
             }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚔️</div>
-              <p style={{ color: '#888', fontSize: '1.1rem' }}>
-                No matches generated yet. Go to "Generate" tab!
-              </p>
+              <p style={{ color: '#888', fontSize: '1.1rem' }}>No matches generated yet. Go to "Generate" tab!</p>
             </div>
           ) : (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
               gap: '1.5rem'
             }}>
               {matches.map(match => {
@@ -1323,17 +1194,7 @@ const AdminPanel = () => {
                       padding: '1.5rem',
                       border: match.status === 'completed' 
                         ? (expiring ? '2px solid #e74c3c' : '1px solid #2ecc71')
-                        : '1px solid rgba(255,215,0,0.2)',
-                      transition: 'all 0.3s ease',
-                      opacity: match.status === 'completed' && expiring ? 0.7 : 1
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-5px)';
-                      e.currentTarget.style.boxShadow = '0 10px 30px rgba(255,215,0,0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
+                        : '1px solid rgba(255,215,0,0.2)'
                     }}
                   >
                     <div style={{
@@ -1342,10 +1203,7 @@ const AdminPanel = () => {
                       alignItems: 'center',
                       marginBottom: '1rem'
                     }}>
-                      <h3 style={{ color: '#FFD700', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <RiSwordLine size={18} />
-                        Match
-                      </h3>
+                      <h3 style={{ color: '#FFD700', fontSize: '1.1rem' }}>⚔️ Match</h3>
                       <span style={{
                         padding: '0.3rem 0.8rem',
                         borderRadius: '20px',
@@ -1372,7 +1230,6 @@ const AdminPanel = () => {
                       gridTemplateColumns: '1fr auto 1fr',
                       gap: '1rem',
                       alignItems: 'center',
-                      marginBottom: '1rem',
                       padding: '1rem',
                       background: 'rgba(0,0,0,0.3)',
                       borderRadius: '10px'
@@ -1380,13 +1237,8 @@ const AdminPanel = () => {
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ 
                           color: match.winner === match.player1_name ? '#FFD700' : '#FFFFFF',
-                          fontWeight: match.winner === match.player1_name ? 'bold' : 'normal',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.3rem'
+                          fontWeight: match.winner === match.player1_name ? 'bold' : 'normal'
                         }}>
-                          <RiUserLine size={16} />
                           {match.player1_name}
                           {match.winner === match.player1_name && ' 🏆'}
                         </div>
@@ -1396,13 +1248,8 @@ const AdminPanel = () => {
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ 
                           color: match.winner === match.player2_name ? '#FFD700' : '#FFFFFF',
-                          fontWeight: match.winner === match.player2_name ? 'bold' : 'normal',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.3rem'
+                          fontWeight: match.winner === match.player2_name ? 'bold' : 'normal'
                         }}>
-                          <RiUser3Line size={16} />
                           {match.player2_name}
                           {match.winner === match.player2_name && ' 🏆'}
                         </div>
@@ -1411,8 +1258,7 @@ const AdminPanel = () => {
                     </div>
                     
                     <p style={{ color: '#888', fontSize: '0.9rem', textAlign: 'center' }}>
-                      <RiTrophyLine size={14} style={{ verticalAlign: 'middle' }} />
-                      Category: <span style={{ color: '#FFD700' }}>{match.category}</span>
+                      🏷️ Category: <span style={{ color: '#FFD700' }}>{match.category}</span>
                     </p>
                     
                     {match.status === 'completed' && match.completed_at && (
@@ -1424,11 +1270,7 @@ const AdminPanel = () => {
                         border: `1px solid ${expiring ? '#e74c3c' : '#2ecc71'}`,
                         textAlign: 'center'
                       }}>
-                        <RiTimeLine size={16} style={{ verticalAlign: 'middle' }} />
-                        <span style={{ 
-                          color: expiring ? '#e74c3c' : '#2ecc71',
-                          fontSize: '0.9rem'
-                        }}>
+                        <span style={{ color: expiring ? '#e74c3c' : '#2ecc71' }}>
                           {expiring ? '⚠️ ' : '⏳ '}
                           {timeLeft || 'Deleting soon...'}
                         </span>
@@ -1446,8 +1288,7 @@ const AdminPanel = () => {
                             background: '#0a0a0a',
                             color: 'white',
                             border: '1px solid #FFD700',
-                            borderRadius: '8px',
-                            cursor: 'pointer'
+                            borderRadius: '8px'
                           }}
                         >
                           <option value="">👑 Select winner</option>
@@ -1465,15 +1306,10 @@ const AdminPanel = () => {
                             borderRadius: '8px',
                             color: matchResult.winner ? '#0a0a0a' : '#666',
                             fontWeight: 'bold',
-                            cursor: matchResult.winner ? 'pointer' : 'not-allowed',
-                            transition: 'all 0.3s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.3rem'
+                            cursor: matchResult.winner ? 'pointer' : 'not-allowed'
                           }}
                         >
-                          {loading ? '⏳ Updating...' : <><RiCheckLine size={18} /> Set Winner</>}
+                          {loading ? '⏳ Updating...' : '🏆 Set Winner'}
                         </button>
                       </div>
                     )}
@@ -1486,7 +1322,7 @@ const AdminPanel = () => {
       )}
 
       {/* =============================================
-          GENERATE MATCHES TAB
+          GENERATE MATCHES TAB - COMPLETE
           ============================================= */}
       {activeTab === 'generate' && (
         <div style={{
@@ -1498,9 +1334,7 @@ const AdminPanel = () => {
           margin: '0 auto'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>
-              <RiDiceLine size={64} color="#FFD700" />
-            </div>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎲</div>
             <h3 style={{ color: '#FFD700', fontSize: '1.8rem' }}>Generate Random Matches</h3>
             <p style={{ color: '#888', marginTop: '0.5rem' }}>
               Create random matchups between approved players
@@ -1509,8 +1343,7 @@ const AdminPanel = () => {
           
           <div className="form-group">
             <label style={{ color: '#FFD700', display: 'block', marginBottom: '0.5rem' }}>
-              <RiTimeLine size={16} style={{ verticalAlign: 'middle' }} />
-              Auto-Delete Completed Matches After
+              ⏳ Auto-Delete Completed Matches After
             </label>
             <select 
               value={autoDeleteDays} 
@@ -1537,8 +1370,7 @@ const AdminPanel = () => {
           
           <div className="form-group">
             <label style={{ color: '#FFD700', display: 'block', marginBottom: '0.5rem' }}>
-              <RiScaleLine size={16} style={{ verticalAlign: 'middle' }} />
-              Select Weight Category
+              ⚖️ Select Weight Category
             </label>
             <select 
               value={selectedCategory} 
@@ -1577,16 +1409,11 @@ const AdminPanel = () => {
               fontSize: '1.1rem',
               fontWeight: 'bold',
               cursor: loading || weightCategories.length === 0 ? 'not-allowed' : 'pointer',
-              transition: 'all 0.3s ease',
-              opacity: loading || weightCategories.length === 0 ? 0.5 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
+              opacity: loading || weightCategories.length === 0 ? 0.5 : 1
             }}
             disabled={loading || weightCategories.length === 0}
           >
-            {loading ? '⏳ Generating...' : <><RiDiceLine size={20} /> Generate Matches</>}
+            {loading ? '⏳ Generating...' : '🎲 Generate Matches'}
           </button>
           
           <div style={{
@@ -1628,9 +1455,7 @@ const AdminPanel = () => {
           border: '1px solid rgba(255,215,0,0.2)',
           textAlign: 'center'
         }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <RiImageLine size={64} color="#FFD700" />
-          </div>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🖼️</div>
           <h3 style={{ color: '#FFD700', fontSize: '1.8rem', marginBottom: '0.5rem' }}>
             Gallery Management
           </h3>
@@ -1639,7 +1464,7 @@ const AdminPanel = () => {
           </p>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
             gap: '1rem',
             maxWidth: '500px',
             margin: '0 auto'
@@ -1650,7 +1475,7 @@ const AdminPanel = () => {
               borderRadius: '10px',
               border: '1px solid rgba(255,215,0,0.1)'
             }}>
-              <RiUserStarLine size={28} color="#FFD700" />
+              <div style={{ fontSize: '2rem' }}>👑</div>
               <p style={{ color: '#FFD700', fontWeight: 'bold', marginTop: '0.3rem' }}>Captain</p>
               <p style={{ color: '#888', fontSize: '0.8rem' }}>1 allowed</p>
             </div>
@@ -1660,7 +1485,7 @@ const AdminPanel = () => {
               borderRadius: '10px',
               border: '1px solid rgba(255,215,0,0.1)'
             }}>
-              <RiShieldStarLine size={28} color="#DAA520" />
+              <div style={{ fontSize: '2rem' }}>🛡️</div>
               <p style={{ color: '#DAA520', fontWeight: 'bold', marginTop: '0.3rem' }}>Sub-Captain</p>
               <p style={{ color: '#888', fontSize: '0.8rem' }}>2 allowed</p>
             </div>
@@ -1670,7 +1495,7 @@ const AdminPanel = () => {
               borderRadius: '10px',
               border: '1px solid rgba(255,215,0,0.1)'
             }}>
-              <RiUserHeartLine size={28} color="#00b894" />
+              <div style={{ fontSize: '2rem' }}>💼</div>
               <p style={{ color: '#00b894', fontWeight: 'bold', marginTop: '0.3rem' }}>Management</p>
               <p style={{ color: '#888', fontSize: '0.8rem' }}>Unlimited</p>
             </div>
@@ -1682,12 +1507,16 @@ const AdminPanel = () => {
               marginTop: '2rem',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.5rem',
+              padding: '0.8rem 2rem',
+              background: 'linear-gradient(135deg, #FFD700, #DAA520)',
+              color: '#0a0a0a',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontWeight: 'bold'
             }}
           >
-            <RiImageLine size={20} />
-            Go to Gallery Management
-            <RiArrowRightLine size={18} />
+            🖼️ Go to Gallery Management →
           </Link>
         </div>
       )}

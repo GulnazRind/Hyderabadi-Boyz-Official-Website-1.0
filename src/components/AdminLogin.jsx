@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ADMIN_CREDENTIALS } from '../utils/supabaseClient';
-import { RiAdminLine, RiLockLine, RiUserLine } from '@remixicon/react';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Check if already logged in
+  React.useEffect(() => {
+    const isAdmin = localStorage.getItem('adminAuth');
+    if (isAdmin === 'true') {
+      navigate('/admin-panel');
+    }
+  }, [navigate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setLoading(true);
     setError('');
 
     if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
@@ -18,15 +27,13 @@ const AdminLogin = () => {
       navigate('/admin-panel');
     } else {
       setError('Invalid username or password');
+      setLoading(false);
     }
   };
 
   return (
     <div className="form-container" style={{ maxWidth: '400px' }}>
-      <h2 className="form-title">
-        <RiAdminLine size={32} />
-        Admin Login
-      </h2>
+      <h2 className="form-title">🔐 Admin Login</h2>
       {error && (
         <div style={{
           padding: '1rem',
@@ -42,34 +49,34 @@ const AdminLogin = () => {
       )}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label>
-            <RiUserLine size={16} style={{ verticalAlign: 'middle' }} />
-            Username
-          </label>
+          <label>👤 Username</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
             placeholder="Enter username"
+            disabled={loading}
           />
         </div>
         <div className="form-group">
-          <label>
-            <RiLockLine size={16} style={{ verticalAlign: 'middle' }} />
-            Password
-          </label>
+          <label>🔑 Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             placeholder="Enter password"
+            disabled={loading}
           />
         </div>
-        <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-          <RiAdminLine size={18} />
-          Login
+        <button 
+          type="submit" 
+          className="btn btn-primary" 
+          style={{ width: '100%', justifyContent: 'center' }}
+          disabled={loading}
+        >
+          {loading ? '⏳ Logging in...' : '🔐 Login'}
         </button>
       </form>
     </div>

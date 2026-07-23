@@ -8,7 +8,6 @@ import {
   RiCloseLine,
   RiUserLine,
   RiUser3Line,
-  RiShieldStarLine,
   RiFilterLine,
   RiCalendarLine,
   RiArrowRightLine,
