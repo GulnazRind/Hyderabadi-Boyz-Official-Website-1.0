@@ -1,6 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { RiHomeLine, RiFileListLine, RiUserAddLine, RiAdminLine } from '@remixicon/react';
+import { 
+  RiHomeLine, 
+  RiFileListLine, 
+  RiUserAddLine, 
+  RiAdminLine,
+  RiShieldStarLine
+} from '@remixicon/react';
 
 const Navbar = () => {
   const location = useLocation();
@@ -9,7 +15,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-brand">
-          <span className="brand-icon">💪</span>
+          <RiShieldStarLine size={28} className="brand-icon" />
           Hyderabadi <span>Boyz</span>
         </Link>
         <ul className="nav-links">

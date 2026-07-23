@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ADMIN_CREDENTIALS } from '../utils/supabaseClient';
+import { RiAdminLine, RiLockLine, RiUserLine } from '@remixicon/react';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -22,14 +23,18 @@ const AdminLogin = () => {
 
   return (
     <div className="form-container" style={{ maxWidth: '400px' }}>
-      <h2 className="form-title">🔐 Admin Login</h2>
+      <h2 className="form-title">
+        <RiAdminLine size={32} />
+        Admin Login
+      </h2>
       {error && (
         <div style={{
           padding: '1rem',
-          borderRadius: '5px',
+          borderRadius: '8px',
           marginBottom: '1.5rem',
-          backgroundColor: '#e74c3c',
-          color: 'white',
+          backgroundColor: 'rgba(231, 76, 60, 0.2)',
+          border: '1px solid #e74c3c',
+          color: '#e74c3c',
           textAlign: 'center'
         }}>
           {error}
@@ -37,7 +42,10 @@ const AdminLogin = () => {
       )}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label>Username</label>
+          <label>
+            <RiUserLine size={16} style={{ verticalAlign: 'middle' }} />
+            Username
+          </label>
           <input
             type="text"
             value={username}
@@ -47,7 +55,10 @@ const AdminLogin = () => {
           />
         </div>
         <div className="form-group">
-          <label>Password</label>
+          <label>
+            <RiLockLine size={16} style={{ verticalAlign: 'middle' }} />
+            Password
+          </label>
           <input
             type="password"
             value={password}
@@ -57,6 +68,7 @@ const AdminLogin = () => {
           />
         </div>
         <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+          <RiAdminLine size={18} />
           Login
         </button>
       </form>
