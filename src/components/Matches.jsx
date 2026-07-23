@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
+import { 
+  RiFileListLine,
+  RiTrophyLine,
+  RiTimeLine,
+  RiCheckLine,
+  RiCloseLine,
+  RiUserLine,
+  RiUser3Line,
+  RiShieldStarLine,
+  RiFilterLine,
+  RiCalendarLine,
+  RiArrowRightLine,
+  RiMedalLine,
+  RiTeamLine
+} from '@remixicon/react';
 
 const Matches = () => {
   const [matches, setMatches] = useState([]);
@@ -9,8 +24,6 @@ const Matches = () => {
 
   useEffect(() => {
     fetchMatches();
-    
-    // Auto-refresh every 30 seconds for live updates
     const interval = setInterval(fetchMatches, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -19,7 +32,6 @@ const Matches = () => {
     try {
       setLoading(true);
       
-      // Fetch all matches (pending and completed)
       const { data, error } = await supabase
         .from('matches')
         .select('*')
@@ -29,7 +41,6 @@ const Matches = () => {
       
       setMatches(data || []);
       
-      // Extract unique categories
       const uniqueCategories = [...new Set(data?.map(m => m.category) || [])];
       setCategories(uniqueCategories);
       
@@ -40,16 +51,13 @@ const Matches = () => {
     }
   };
 
-  // Filter matches by category
   const filteredMatches = selectedCategory === 'all' 
     ? matches 
     : matches.filter(m => m.category === selectedCategory);
 
-  // Separate pending and completed matches
   const pendingMatches = filteredMatches.filter(m => m.status !== 'completed');
   const completedMatches = filteredMatches.filter(m => m.status === 'completed');
 
-  // Calculate time ago
   const getTimeAgo = (date) => {
     const now = new Date();
     const matchDate = new Date(date);
@@ -59,18 +67,6 @@ const Matches = () => {
     if (diff < 60) return `${diff}m ago`;
     if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
     return `${Math.floor(diff / 1440)}d ago`;
-  };
-
-  // Get status color
-  const getStatusColor = (status) => {
-    if (status === 'completed') return '#2ecc71';
-    return '#f39c12';
-  };
-
-  // Get status label
-  const getStatusLabel = (status) => {
-    if (status === 'completed') return '✅ Completed';
-    return '⏳ Pending';
   };
 
   if (loading) {
@@ -89,7 +85,7 @@ const Matches = () => {
   return (
     <div style={{ padding: '2rem 0' }}>
       {/* Header Section */}
-      <div style={{
+      <div className="section-header" style={{
         background: 'linear-gradient(135deg, rgba(26,26,46,0.9), rgba(22,33,62,0.9))',
         padding: '2rem',
         borderRadius: '15px',
@@ -100,9 +96,14 @@ const Matches = () => {
         <h2 style={{
           color: '#FFD700',
           fontSize: '2.5rem',
-          marginBottom: '0.5rem'
+          marginBottom: '0.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem'
         }}>
-          ⚔️ Matches
+          <RiFileListLine size={32} />
+          Matches
         </h2>
         <p style={{ color: '#aaa' }}>
           View all matches and results
@@ -116,40 +117,73 @@ const Matches = () => {
         gap: '1rem',
         marginBottom: '2rem'
       }}>
-        <div style={{
+        <div className="stat-card" style={{
           background: 'rgba(26,26,46,0.8)',
           padding: '1rem',
           borderRadius: '10px',
           textAlign: 'center',
-          border: '1px solid rgba(255,215,0,0.1)'
+          border: '1px solid rgba(255,215,0,0.1)',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.borderColor = '#FFD700';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.borderColor = 'rgba(255,215,0,0.1)';
         }}>
-          <div style={{ fontSize: '2rem', color: '#FFD700' }}>📊</div>
+          <div style={{ fontSize: '2rem', color: '#FFD700' }}>
+            <RiFileListLine size={32} />
+          </div>
           <div style={{ color: '#888', fontSize: '0.9rem' }}>Total Matches</div>
           <div style={{ color: '#FFD700', fontSize: '1.5rem', fontWeight: 'bold' }}>
             {matches.length}
           </div>
         </div>
-        <div style={{
+        <div className="stat-card" style={{
           background: 'rgba(26,26,46,0.8)',
           padding: '1rem',
           borderRadius: '10px',
           textAlign: 'center',
-          border: '1px solid rgba(255,215,0,0.1)'
+          border: '1px solid rgba(255,215,0,0.1)',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.borderColor = '#f39c12';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.borderColor = 'rgba(255,215,0,0.1)';
         }}>
-          <div style={{ fontSize: '2rem', color: '#f39c12' }}>⏳</div>
+          <div style={{ fontSize: '2rem', color: '#f39c12' }}>
+            <RiTimeLine size={32} />
+          </div>
           <div style={{ color: '#888', fontSize: '0.9rem' }}>Pending</div>
           <div style={{ color: '#f39c12', fontSize: '1.5rem', fontWeight: 'bold' }}>
             {pendingMatches.length}
           </div>
         </div>
-        <div style={{
+        <div className="stat-card" style={{
           background: 'rgba(26,26,46,0.8)',
           padding: '1rem',
           borderRadius: '10px',
           textAlign: 'center',
-          border: '1px solid rgba(255,215,0,0.1)'
+          border: '1px solid rgba(255,215,0,0.1)',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.borderColor = '#2ecc71';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.borderColor = 'rgba(255,215,0,0.1)';
         }}>
-          <div style={{ fontSize: '2rem', color: '#2ecc71' }}>✅</div>
+          <div style={{ fontSize: '2rem', color: '#2ecc71' }}>
+            <RiCheckLine size={32} />
+          </div>
           <div style={{ color: '#888', fontSize: '0.9rem' }}>Completed</div>
           <div style={{ color: '#2ecc71', fontSize: '1.5rem', fontWeight: 'bold' }}>
             {completedMatches.length}
@@ -175,10 +209,14 @@ const Matches = () => {
               background: selectedCategory === 'all' ? 'rgba(255,215,0,0.2)' : 'transparent',
               color: selectedCategory === 'all' ? '#FFD700' : '#888',
               cursor: 'pointer',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem'
             }}
           >
-            🏷️ All
+            <RiFilterLine size={16} />
+            All
           </button>
           {categories.map(cat => (
             <button
@@ -209,7 +247,9 @@ const Matches = () => {
           borderRadius: '15px',
           border: '1px dashed rgba(255,215,0,0.3)'
         }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚔️</div>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+            <RiFileListLine size={48} color="#FFD700" />
+          </div>
           <p style={{ color: '#888', fontSize: '1.1rem' }}>
             No matches available in this category
           </p>
@@ -229,7 +269,8 @@ const Matches = () => {
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                ⏳ Pending Matches
+                <RiTimeLine size={24} />
+                Pending Matches
                 <span style={{
                   fontSize: '0.8rem',
                   color: '#888',
@@ -244,16 +285,11 @@ const Matches = () => {
                 gap: '1.5rem',
                 marginBottom: '2rem'
               }}>
-                {pendingMatches.map(match => (
+                {pendingMatches.map((match, index) => (
                   <div
                     key={match.id}
-                    style={{
-                      background: 'rgba(26,26,46,0.9)',
-                      borderRadius: '12px',
-                      padding: '1.5rem',
-                      border: '1px solid rgba(243,156,18,0.2)',
-                      transition: 'all 0.3s ease'
-                    }}
+                    className="match-card animate-fadeInUp"
+                    style={{ animationDelay: `${index * 0.05}s` }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-5px)';
                       e.currentTarget.style.boxShadow = '0 10px 30px rgba(255,215,0,0.1)';
@@ -276,11 +312,16 @@ const Matches = () => {
                         fontWeight: 'bold',
                         background: 'rgba(243,156,18,0.2)',
                         color: '#f39c12',
-                        border: '1px solid rgba(243,156,18,0.3)'
+                        border: '1px solid rgba(243,156,18,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
                       }}>
-                        ⏳ Pending
+                        <RiTimeLine size={12} />
+                        Pending
                       </span>
                       <span style={{ color: '#888', fontSize: '0.8rem' }}>
+                        <RiCalendarLine size={14} style={{ verticalAlign: 'middle' }} />
                         {getTimeAgo(match.created_at)}
                       </span>
                     </div>
@@ -297,8 +338,13 @@ const Matches = () => {
                         <div style={{
                           color: '#fff',
                           fontSize: '1.1rem',
-                          fontWeight: '500'
+                          fontWeight: '500',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
                         }}>
+                          <RiUserLine size={18} color="#FFD700" />
                           {match.player1_name}
                         </div>
                         <div style={{ color: '#666', fontSize: '0.8rem' }}>Player 1</div>
@@ -314,8 +360,13 @@ const Matches = () => {
                         <div style={{
                           color: '#fff',
                           fontSize: '1.1rem',
-                          fontWeight: '500'
+                          fontWeight: '500',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
                         }}>
+                          <RiUser3Line size={18} color="#FFD700" />
                           {match.player2_name}
                         </div>
                         <div style={{ color: '#666', fontSize: '0.8rem' }}>Player 2</div>
@@ -330,10 +381,11 @@ const Matches = () => {
                       borderTop: '1px solid rgba(255,255,255,0.05)'
                     }}>
                       <span style={{ color: '#888', fontSize: '0.9rem' }}>
-                        🏷️ {match.category}
+                        <RiTrophyLine size={14} style={{ verticalAlign: 'middle' }} />
+                        {match.category}
                       </span>
                       <span style={{ color: '#666', fontSize: '0.8rem' }}>
-                        ⚔️ Match #{match.id.slice(0, 8)}
+                        #ID {match.id.slice(0, 8)}
                       </span>
                     </div>
                   </div>
@@ -352,7 +404,8 @@ const Matches = () => {
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                ✅ Completed Matches
+                <RiCheckLine size={24} />
+                Completed Matches
                 <span style={{
                   fontSize: '0.8rem',
                   color: '#888',
@@ -366,15 +419,13 @@ const Matches = () => {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
                 gap: '1.5rem'
               }}>
-                {completedMatches.map(match => (
+                {completedMatches.map((match, index) => (
                   <div
                     key={match.id}
-                    style={{
-                      background: 'rgba(26,26,46,0.9)',
-                      borderRadius: '12px',
-                      padding: '1.5rem',
-                      border: `2px solid rgba(46,204,113,0.3)`,
-                      transition: 'all 0.3s ease'
+                    className="match-card animate-fadeInUp"
+                    style={{ 
+                      animationDelay: `${index * 0.05}s`,
+                      border: '2px solid rgba(46,204,113,0.3)'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-5px)';
@@ -398,11 +449,16 @@ const Matches = () => {
                         fontWeight: 'bold',
                         background: 'rgba(46,204,113,0.2)',
                         color: '#2ecc71',
-                        border: '1px solid rgba(46,204,113,0.3)'
+                        border: '1px solid rgba(46,204,113,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
                       }}>
-                        ✅ Completed
+                        <RiCheckLine size={12} />
+                        Completed
                       </span>
                       <span style={{ color: '#888', fontSize: '0.8rem' }}>
+                        <RiCalendarLine size={14} style={{ verticalAlign: 'middle' }} />
                         {getTimeAgo(match.completed_at || match.created_at)}
                       </span>
                     </div>
@@ -419,8 +475,13 @@ const Matches = () => {
                         <div style={{
                           color: match.winner === match.player1_name ? '#FFD700' : '#888',
                           fontSize: '1.1rem',
-                          fontWeight: match.winner === match.player1_name ? 'bold' : 'normal'
+                          fontWeight: match.winner === match.player1_name ? 'bold' : 'normal',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
                         }}>
+                          <RiUserLine size={18} color={match.winner === match.player1_name ? '#FFD700' : '#666'} />
                           {match.player1_name}
                           {match.winner === match.player1_name && ' 🏆'}
                         </div>
@@ -437,8 +498,13 @@ const Matches = () => {
                         <div style={{
                           color: match.winner === match.player2_name ? '#FFD700' : '#888',
                           fontSize: '1.1rem',
-                          fontWeight: match.winner === match.player2_name ? 'bold' : 'normal'
+                          fontWeight: match.winner === match.player2_name ? 'bold' : 'normal',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
                         }}>
+                          <RiUser3Line size={18} color={match.winner === match.player2_name ? '#FFD700' : '#666'} />
                           {match.player2_name}
                           {match.winner === match.player2_name && ' 🏆'}
                         </div>
@@ -453,10 +519,15 @@ const Matches = () => {
                         background: 'rgba(255,215,0,0.1)',
                         borderRadius: '8px',
                         border: '1px solid rgba(255,215,0,0.2)',
-                        marginBottom: '0.5rem'
+                        marginBottom: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem'
                       }}>
+                        <RiTrophyLine size={20} color="#FFD700" />
                         <span style={{ color: '#FFD700', fontWeight: 'bold' }}>
-                          🏆 Winner: {match.winner}
+                          Winner: {match.winner}
                         </span>
                       </div>
                     )}
@@ -469,10 +540,11 @@ const Matches = () => {
                       borderTop: '1px solid rgba(255,255,255,0.05)'
                     }}>
                       <span style={{ color: '#888', fontSize: '0.9rem' }}>
-                        🏷️ {match.category}
+                        <RiTrophyLine size={14} style={{ verticalAlign: 'middle' }} />
+                        {match.category}
                       </span>
                       <span style={{ color: '#666', fontSize: '0.8rem' }}>
-                        ⚔️ Match #{match.id.slice(0, 8)}
+                        #ID {match.id.slice(0, 8)}
                       </span>
                     </div>
                   </div>
