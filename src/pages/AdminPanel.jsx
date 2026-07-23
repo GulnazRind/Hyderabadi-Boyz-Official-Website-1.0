@@ -915,8 +915,8 @@ const AdminPanel = () => {
                       fontWeight: 'bold',
                       borderRadius: '0 15px 0 15px'
                     }}>
-                      {tournament.status === 'active' ? '▶️ Active' : 
-                       tournament.status === 'completed' ? '✅ Completed' : '📅 Upcoming'}
+                      {tournament.status === 'active' ? 'Active' : 
+                       tournament.status === 'completed' ? 'Completed' : 'Upcoming'}
                     </div>
                     
                     <h3 style={{
