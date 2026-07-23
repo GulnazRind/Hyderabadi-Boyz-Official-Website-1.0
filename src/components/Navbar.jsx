@@ -13,22 +13,22 @@ const Navbar = () => {
         <ul className="nav-links">
           <li>
             <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
-              🏠 Home
+              Home
             </Link>
           </li>
           <li>
             <Link to="/register" className={location.pathname === '/register' ? 'active' : ''}>
-              📝 Register
+              Register
             </Link>
           </li>
           <li>
             <Link to="/matches" className={location.pathname === '/matches' ? 'active' : ''}>
-              ⚔️ Matches
+              Matches
             </Link>
           </li>
           <li>
             <Link to="/admin" className={location.pathname === '/admin' ? 'active' : ''}>
-              🔐 Admin
+              Admin
             </Link>
           </li>
         </ul>
