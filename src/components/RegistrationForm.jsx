@@ -1,6 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
+import { 
+  RiUserAddLine, 
+  RiUserLine, 
+  RiUser3Line,
+  RiIdCardLine,
+  RiCalendarLine,
+  RiPhoneLine,
+  RiMailLine,
+  RiMapPinLine,
+  RiHomeLine,
+  RiScaleLine,
+  RiStarLine,
+  RiArmyLine,
+  RiTrophyLine,
+  RiQuestionLine,
+  RiTeamLine,
+  RiTimeLine,
+  RiCheckLine,
+  RiArrowRightLine
+} from '@remixicon/react';
 
 const RegistrationForm = () => {
   const [searchParams] = useSearchParams();
@@ -19,7 +39,7 @@ const RegistrationForm = () => {
     experience: '',
     dominantarm: '',
     previouscompetitions: '',
-    whyarmwrestling: '',  // Fixed: was 'whyamwrestling'
+    whyarmwrestling: '',
     interestedinteam: 'yes',
     availability: '',
     tournamentid: tournamentId || ''
@@ -85,9 +105,6 @@ const RegistrationForm = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      console.log('Submitting form data:', formData);
-
-      // Validate required fields
       if (!formData.fullname || !formData.cnic || !formData.dateofbirth || 
           !formData.phone || !formData.address || !formData.weightcategory || 
           !formData.experience || !formData.dominantarm || !formData.whyarmwrestling || 
@@ -95,7 +112,6 @@ const RegistrationForm = () => {
         throw new Error('Please fill all required fields');
       }
 
-      // Check if player already exists
       const { data: existingPlayer, error: checkError } = await supabase
         .from('players')
         .select('cnic')
@@ -108,7 +124,6 @@ const RegistrationForm = () => {
         return;
       }
 
-      // Prepare data for insertion (using correct lowercase column names)
       const playerData = {
         fullname: formData.fullname.trim(),
         fathername: formData.fathername ? formData.fathername.trim() : '',
@@ -122,7 +137,7 @@ const RegistrationForm = () => {
         experience: formData.experience,
         dominantarm: formData.dominantarm,
         previouscompetitions: formData.previouscompetitions ? formData.previouscompetitions.trim() : '',
-        whyarmwrestling: formData.whyarmwrestling.trim(),  // Fixed: was 'whyamwrestling'
+        whyarmwrestling: formData.whyarmwrestling.trim(),
         interestedinteam: formData.interestedinteam,
         availability: formData.availability.trim(),
         tournamentid: formData.tournamentid || '',
@@ -130,27 +145,18 @@ const RegistrationForm = () => {
         status: 'pending'
       };
 
-      console.log('Inserting data:', playerData);
-
-      // Insert new player
       const { data, error } = await supabase
         .from('players')
         .insert([playerData])
         .select();
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw new Error(error.message);
-      }
-
-      console.log('Insert success:', data);
+      if (error) throw error;
 
       setMessage({ 
         type: 'success', 
         text: `✅ Registration successful! Welcome to Hyderabadi Boyz!` 
       });
       
-      // Reset form
       setFormData({
         fullname: '',
         fathername: '',
@@ -164,7 +170,7 @@ const RegistrationForm = () => {
         experience: '',
         dominantarm: '',
         previouscompetitions: '',
-        whyarmwrestling: '',  // Fixed: was 'whyamwrestling'
+        whyarmwrestling: '',
         interestedinteam: 'yes',
         availability: '',
         tournamentid: tournamentId || ''
@@ -182,36 +188,53 @@ const RegistrationForm = () => {
   };
 
   return (
-    <div className="form-container">
+    <div className="form-container animate-fadeInUp">
       <h2 className="form-title">
-        {selectedTournament ? `📝 Register for ${selectedTournament.name}` : '📝 Join Hyderabadi Boyz'}
+        <RiUserAddLine size={32} />
+        {selectedTournament ? `Register for ${selectedTournament.name}` : 'Join Hyderabadi Boyz'}
       </h2>
       
       {selectedTournament && (
         <div style={{
           padding: '1rem',
           background: 'rgba(255,215,0,0.1)',
-          borderRadius: '8px',
+          borderRadius: '10px',
           marginBottom: '1.5rem',
-          border: '1px solid rgba(255,215,0,0.2)'
+          border: '1px solid rgba(255,215,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
         }}>
-          <p style={{ color: '#FFD700', marginBottom: '0.3rem' }}>
-            🏆 <strong>{selectedTournament.name}</strong>
-          </p>
-          <p style={{ color: '#888', fontSize: '0.9rem' }}>
-            📅 {new Date(selectedTournament.date).toLocaleDateString()} | ⏰ {selectedTournament.time} | 📍 {selectedTournament.location}
-          </p>
+          <RiTrophyLine size={24} color="#FFD700" />
+          <div>
+            <p style={{ color: '#FFD700', marginBottom: '0.3rem', fontWeight: 'bold' }}>
+              {selectedTournament.name}
+            </p>
+            <p style={{ color: '#888', fontSize: '0.9rem' }}>
+              <RiCalendarLine size={14} style={{ verticalAlign: 'middle' }} /> 
+              {new Date(selectedTournament.date).toLocaleDateString()} | 
+              <RiTimeLine size={14} style={{ verticalAlign: 'middle', marginLeft: '0.5rem' }} /> 
+              {selectedTournament.time} | 
+              <RiMapPinLine size={14} style={{ verticalAlign: 'middle', marginLeft: '0.5rem' }} /> 
+              {selectedTournament.location}
+            </p>
+          </div>
         </div>
       )}
       
       {message.text && (
         <div style={{
           padding: '1rem',
-          borderRadius: '5px',
+          borderRadius: '8px',
           marginBottom: '1.5rem',
-          backgroundColor: message.type === 'success' ? '#2ecc71' : '#e74c3c',
-          color: 'white'
+          backgroundColor: message.type === 'success' ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.2)',
+          border: `1px solid ${message.type === 'success' ? '#2ecc71' : '#e74c3c'}`,
+          color: message.type === 'success' ? '#2ecc71' : '#e74c3c',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
         }}>
+          {message.type === 'success' ? <RiCheckLine size={20} /> : <RiCloseLine size={20} />}
           {message.text}
         </div>
       )}
@@ -219,7 +242,10 @@ const RegistrationForm = () => {
       <form onSubmit={handleSubmit}>
         {!tournamentId && (
           <div className="form-group">
-            <label>Select Tournament *</label>
+            <label>
+              <RiTrophyLine size={16} style={{ verticalAlign: 'middle' }} />
+              Select Tournament *
+            </label>
             <select
               name="tournamentid"
               value={formData.tournamentid}
@@ -237,7 +263,10 @@ const RegistrationForm = () => {
         )}
 
         <div className="form-group">
-          <label>Full Name *</label>
+          <label>
+            <RiUserLine size={16} style={{ verticalAlign: 'middle' }} />
+            Full Name *
+          </label>
           <input
             type="text"
             name="fullname"
@@ -249,7 +278,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Father's Name</label>
+          <label>
+            <RiUser3Line size={16} style={{ verticalAlign: 'middle' }} />
+            Father's Name
+          </label>
           <input
             type="text"
             name="fathername"
@@ -260,7 +292,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>CNIC Number *</label>
+          <label>
+            <RiIdCardLine size={16} style={{ verticalAlign: 'middle' }} />
+            CNIC Number *
+          </label>
           <input
             type="text"
             name="cnic"
@@ -272,7 +307,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Date of Birth *</label>
+          <label>
+            <RiCalendarLine size={16} style={{ verticalAlign: 'middle' }} />
+            Date of Birth *
+          </label>
           <input
             type="date"
             name="dateofbirth"
@@ -283,7 +321,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Phone Number *</label>
+          <label>
+            <RiPhoneLine size={16} style={{ verticalAlign: 'middle' }} />
+            Phone Number *
+          </label>
           <input
             type="tel"
             name="phone"
@@ -295,7 +336,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Email Address</label>
+          <label>
+            <RiMailLine size={16} style={{ verticalAlign: 'middle' }} />
+            Email Address
+          </label>
           <input
             type="email"
             name="email"
@@ -306,7 +350,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Address *</label>
+          <label>
+            <RiHomeLine size={16} style={{ verticalAlign: 'middle' }} />
+            Address *
+          </label>
           <input
             type="text"
             name="address"
@@ -318,7 +365,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>City</label>
+          <label>
+            <RiMapPinLine size={16} style={{ verticalAlign: 'middle' }} />
+            City
+          </label>
           <input
             type="text"
             name="city"
@@ -329,7 +379,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Weight Category *</label>
+          <label>
+            <RiScaleLine size={16} style={{ verticalAlign: 'middle' }} />
+            Weight Category *
+          </label>
           <select
             name="weightcategory"
             value={formData.weightcategory}
@@ -344,7 +397,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Experience Level *</label>
+          <label>
+            <RiStarLine size={16} style={{ verticalAlign: 'middle' }} />
+            Experience Level *
+          </label>
           <select
             name="experience"
             value={formData.experience}
@@ -359,7 +415,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Dominant Arm *</label>
+          <label>
+            <RiArmyLine size={16} style={{ verticalAlign: 'middle' }} />
+            Dominant Arm *
+          </label>
           <select
             name="dominantarm"
             value={formData.dominantarm}
@@ -374,7 +433,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Previous Competitions</label>
+          <label>
+            <RiTrophyLine size={16} style={{ verticalAlign: 'middle' }} />
+            Previous Competitions
+          </label>
           <textarea
             name="previouscompetitions"
             value={formData.previouscompetitions}
@@ -384,9 +446,12 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Why do you want to join Hyderabadi Boyz? *</label>
+          <label>
+            <RiQuestionLine size={16} style={{ verticalAlign: 'middle' }} />
+            Why do you want to join Hyderabadi Boyz? *
+          </label>
           <textarea
-            name="whyarmwrestling"  // Fixed: was 'whyamwrestling'
+            name="whyarmwrestling"
             value={formData.whyarmwrestling}
             onChange={handleChange}
             required
@@ -395,7 +460,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Are you interested in being part of the team? *</label>
+          <label>
+            <RiTeamLine size={16} style={{ verticalAlign: 'middle' }} />
+            Are you interested in being part of the team? *
+          </label>
           <select
             name="interestedinteam"
             value={formData.interestedinteam}
@@ -408,7 +476,10 @@ const RegistrationForm = () => {
         </div>
 
         <div className="form-group">
-          <label>Availability for Training *</label>
+          <label>
+            <RiTimeLine size={16} style={{ verticalAlign: 'middle' }} />
+            Availability for Training *
+          </label>
           <input
             type="text"
             name="availability"
@@ -422,10 +493,16 @@ const RegistrationForm = () => {
         <button 
           type="submit" 
           className="btn btn-primary" 
-          style={{ width: '100%' }}
+          style={{ width: '100%', justifyContent: 'center' }}
           disabled={loading}
         >
-          {loading ? '⏳ Submitting...' : '📝 Register Now'}
+          {loading ? '⏳ Submitting...' : (
+            <>
+              <RiUserAddLine size={20} />
+              Register Now
+              <RiArrowRightLine size={18} />
+            </>
+          )}
         </button>
       </form>
     </div>
