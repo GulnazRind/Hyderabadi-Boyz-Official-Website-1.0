@@ -8,7 +8,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-brand">
-          ✨ Hyderabadi <span>Boyz</span>
+          HYDERABADI <span>BOYZ</span>
         </Link>
         <ul className="nav-links">
           <li>
