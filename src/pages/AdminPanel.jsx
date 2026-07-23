@@ -1,6 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
+import { 
+  RiTrophyLine,
+  RiUserLine,
+  RiUser3Line,
+  RiSwordLine,
+  RiDiceLine,
+  RiImageLine,
+  RiAddLine,
+  RiDeleteBinLine,
+  RiEditLine,
+  RiCheckLine,
+  RiCloseLine,
+  RiCalendarLine,
+  RiTimeLine,
+  RiMapPinLine,
+  RiShieldStarLine,
+  RiTeamLine,
+  RiUserStarLine,
+  RiUserHeartLine
+} from '@remixicon/react';
 
 const AdminPanel = () => {
   const [players, setPlayers] = useState([]);
@@ -47,9 +67,6 @@ const AdminPanel = () => {
     };
   }, [navigate]);
 
-  // =============================================
-  // FETCH ALL DATA
-  // =============================================
   const fetchAllData = async () => {
     try {
       setLoading(true);
@@ -89,36 +106,6 @@ const AdminPanel = () => {
     }
   };
 
-  // =============================================
-  // AUTO-DELETE COMPLETED MATCHES
-  // =============================================
-  const deleteOldCompletedMatches = async () => {
-    try {
-      const now = new Date();
-      const daysToKeep = autoDeleteDays || 2;
-      const cutoffDate = new Date(now.getTime() - (daysToKeep * 24 * 60 * 60 * 1000));
-      
-      const { data, error } = await supabase
-        .from('matches')
-        .delete()
-        .eq('status', 'completed')
-        .lt('completed_at', cutoffDate.toISOString());
-
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        console.log(`🗑️ Deleted ${data.length} old completed matches`);
-        await fetchAllData();
-      }
-      
-    } catch (error) {
-      console.error('Error deleting old matches:', error);
-    }
-  };
-
-  // =============================================
-  // UPDATE TOURNAMENT STATUSES
-  // =============================================
   const updateTournamentStatuses = async () => {
     try {
       const now = new Date();
@@ -162,9 +149,30 @@ const AdminPanel = () => {
     }
   };
 
-  // =============================================
-  // TOURNAMENT MANAGEMENT
-  // =============================================
+  const deleteOldCompletedMatches = async () => {
+    try {
+      const now = new Date();
+      const daysToKeep = autoDeleteDays || 2;
+      const cutoffDate = new Date(now.getTime() - (daysToKeep * 24 * 60 * 60 * 1000));
+      
+      const { data, error } = await supabase
+        .from('matches')
+        .delete()
+        .eq('status', 'completed')
+        .lt('completed_at', cutoffDate.toISOString());
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        console.log(`🗑️ Deleted ${data.length} old completed matches`);
+        await fetchAllData();
+      }
+      
+    } catch (error) {
+      console.error('Error deleting old matches:', error);
+    }
+  };
+
   const addTournament = async (e) => {
     e.preventDefault();
     setError('');
@@ -270,9 +278,6 @@ const AdminPanel = () => {
     }
   };
 
-  // =============================================
-  // GENERATE MATCHES - With Duplicate Prevention
-  // =============================================
   const generateMatches = async () => {
     if (!selectedCategory) {
       setError('Please select a weight category');
@@ -373,9 +378,6 @@ const AdminPanel = () => {
     }
   };
 
-  // =============================================
-  // UPDATE MATCH RESULT
-  // =============================================
   const updateMatchResult = async (matchId, winnerName) => {
     if (!winnerName) {
       setError('Please select a winner');
@@ -410,9 +412,6 @@ const AdminPanel = () => {
     }
   };
 
-  // =============================================
-  // PLAYER MANAGEMENT
-  // =============================================
   const approvePlayer = async (playerId) => {
     try {
       setError('');
@@ -461,9 +460,6 @@ const AdminPanel = () => {
     }
   };
 
-  // =============================================
-  // HELPER FUNCTIONS
-  // =============================================
   const getTimeRemaining = (tournament) => {
     if (!tournament.date || !tournament.time) return null;
     
@@ -529,9 +525,6 @@ const AdminPanel = () => {
 
   const weightCategories = [...new Set(players.map(p => p.weightcategory))];
 
-  // =============================================
-  // RENDER
-  // =============================================
   return (
     <div style={{ padding: '2rem 0' }}>
       {/* Header */}
@@ -561,10 +554,11 @@ const AdminPanel = () => {
           position: 'relative',
           textShadow: '0 0 30px rgba(255,215,0,0.3)'
         }}>
-          ⚡ Admin Dashboard
+          <RiShieldStarLine size={32} style={{ verticalAlign: 'middle' }} />
+          Admin Dashboard
         </h2>
         <p style={{ color: '#aaa', marginTop: '0.5rem', position: 'relative' }}>
-          Manage tournaments, players, and matches
+          Manage tournaments, players, matches and gallery
         </p>
       </div>
 
@@ -593,7 +587,7 @@ const AdminPanel = () => {
               cursor: 'pointer'
             }}
           >
-            ✕
+            <RiCloseLine size={20} />
           </button>
         </div>
       )}
@@ -606,8 +600,13 @@ const AdminPanel = () => {
           background: 'rgba(46, 204, 113, 0.2)',
           border: '1px solid #2ecc71',
           color: '#2ecc71',
-          textAlign: 'center'
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem'
         }}>
+          <RiCheckLine size={20} />
           {success}
         </div>
       )}
@@ -615,15 +614,16 @@ const AdminPanel = () => {
       {/* Tabs */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
         gap: '1rem',
         marginBottom: '2rem'
       }}>
         {[
-          { id: 'tournaments', icon: '🏆', label: 'Tournaments', count: tournaments.length },
-          { id: 'players', icon: '👥', label: 'Players', count: players.length },
-          { id: 'matches', icon: '⚔️', label: 'Matches', count: matches.length },
-          { id: 'generate', icon: '🎲', label: 'Generate Matches', count: '' }
+          { id: 'tournaments', icon: <RiTrophyLine size={22} />, label: 'Tournaments', count: tournaments.length },
+          { id: 'players', icon: <RiUserLine size={22} />, label: 'Players', count: players.length },
+          { id: 'matches', icon: <RiSwordLine size={22} />, label: 'Matches', count: matches.length },
+          { id: 'generate', icon: <RiDiceLine size={22} />, label: 'Generate', count: '' },
+          { id: 'gallery', icon: <RiImageLine size={22} />, label: 'Gallery', count: '' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -637,20 +637,24 @@ const AdminPanel = () => {
               border: activeTab === tab.id ? 'none' : '2px solid #FFD700',
               borderRadius: '10px',
               cursor: 'pointer',
-              fontSize: '1.1rem',
+              fontSize: '1rem',
               fontWeight: '600',
               transition: 'all 0.3s ease',
-              boxShadow: activeTab === tab.id ? '0 5px 20px rgba(255,215,0,0.3)' : 'none'
+              boxShadow: activeTab === tab.id ? '0 5px 20px rgba(255,215,0,0.3)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
             }}
           >
-            <div style={{ fontSize: '1.5rem', marginBottom: '0.3rem' }}>{tab.icon}</div>
+            {tab.icon}
             {tab.label}
             {tab.count !== '' && (
               <span style={{
                 display: 'inline-block',
-                marginLeft: '0.5rem',
+                marginLeft: '0.3rem',
                 background: activeTab === tab.id ? 'rgba(0,0,0,0.2)' : 'rgba(255,215,0,0.2)',
-                padding: '0.2rem 0.6rem',
+                padding: '0.1rem 0.6rem',
                 borderRadius: '20px',
                 fontSize: '0.8rem'
               }}>
@@ -662,7 +666,7 @@ const AdminPanel = () => {
       </div>
 
       {/* =============================================
-          TOURNAMENTS TAB - Complete
+          TOURNAMENTS TAB
           ============================================= */}
       {activeTab === 'tournaments' && (
         <div>
@@ -682,7 +686,8 @@ const AdminPanel = () => {
               alignItems: 'center',
               gap: '0.5rem'
             }}>
-              ➕ Create New Tournament
+              <RiAddLine size={24} />
+              Create New Tournament
             </h3>
             <form onSubmit={addTournament}>
               <div style={{
@@ -837,13 +842,17 @@ const AdminPanel = () => {
                   fontSize: '1.1rem',
                   fontWeight: 'bold',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
                 }}
                 disabled={loading}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
               >
-                {loading ? '⏳ Creating...' : '🏆 Create Tournament'}
+                {loading ? '⏳ Creating...' : <><RiAddLine size={20} /> Create Tournament</>}
               </button>
             </form>
           </div>
@@ -852,9 +861,13 @@ const AdminPanel = () => {
           <h3 style={{
             color: '#FFD700',
             marginBottom: '1.5rem',
-            fontSize: '1.5rem'
+            fontSize: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
           }}>
-            📋 All Tournaments
+            <RiTrophyLine size={24} />
+            All Tournaments ({tournaments.length})
           </h3>
           
           {tournaments.length === 0 ? (
@@ -915,8 +928,8 @@ const AdminPanel = () => {
                       fontWeight: 'bold',
                       borderRadius: '0 15px 0 15px'
                     }}>
-                      {tournament.status === 'active' ? 'Active' : 
-                       tournament.status === 'completed' ? 'Completed' : 'Upcoming'}
+                      {tournament.status === 'active' ? '▶️ Active' : 
+                       tournament.status === 'completed' ? '✅ Completed' : '📅 Upcoming'}
                     </div>
                     
                     <h3 style={{
@@ -925,12 +938,13 @@ const AdminPanel = () => {
                       marginBottom: '0.5rem',
                       paddingRight: '80px'
                     }}>
-                      🏆 {tournament.name}
+                      <RiTrophyLine size={20} style={{ verticalAlign: 'middle' }} />
+                      {tournament.name}
                     </h3>
                     
                     <div style={{ color: '#ccc', lineHeight: '1.8' }}>
                       <p>
-                        <span style={{ color: '#888' }}>📅 Date:</span>{' '}
+                        <RiCalendarLine size={16} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
                         {new Date(tournament.date).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
@@ -938,26 +952,17 @@ const AdminPanel = () => {
                         })}
                       </p>
                       <p>
-                        <span style={{ color: '#888' }}>⏰ Time:</span>{' '}
-                        <span style={{ color: '#FFD700' }}>{tournament.time}</span>
+                        <RiTimeLine size={16} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
+                        {tournament.time}
                       </p>
                       <p>
-                        <span style={{ color: '#888' }}>📍 Location:</span>{' '}
+                        <RiMapPinLine size={16} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
                         {tournament.location}
                       </p>
-                      <p>
-                        <span style={{ color: '#888' }}>🏷️ Category:</span>{' '}
-                        <span style={{ color: '#FFD700' }}>{tournament.category}</span>
-                      </p>
-                      <p>
-                        <span style={{ color: '#888' }}>⏱️ Duration:</span>{' '}
-                        {tournament.duration_hours || 4} hours
-                      </p>
+                      <p><strong>Category:</strong> {tournament.category}</p>
+                      <p><strong>Duration:</strong> {tournament.duration_hours || 4} hours</p>
                       {tournament.description && (
-                        <p>
-                          <span style={{ color: '#888' }}>📝 Description:</span>{' '}
-                          {tournament.description}
-                        </p>
+                        <p style={{ color: '#888' }}>{tournament.description}</p>
                       )}
                     </div>
 
@@ -970,7 +975,8 @@ const AdminPanel = () => {
                         border: '1px solid rgba(255,215,0,0.2)',
                         textAlign: 'center'
                       }}>
-                        <span style={{ color: '#888' }}>⏳ Time Remaining: </span>
+                        <RiTimeLine size={18} style={{ verticalAlign: 'middle' }} />
+                        <span style={{ color: '#888' }}> Time Remaining: </span>
                         <span style={{ 
                           color: '#FFD700', 
                           fontWeight: 'bold',
@@ -1037,7 +1043,8 @@ const AdminPanel = () => {
                         onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
                         onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                       >
-                        📝 Register Now
+                        <RiUserAddLine size={16} style={{ verticalAlign: 'middle' }} />
+                        Register Now
                       </button>
                       
                       <select
@@ -1078,7 +1085,7 @@ const AdminPanel = () => {
                           e.target.style.color = '#e74c3c';
                         }}
                       >
-                        🗑️ Delete
+                        <RiDeleteBinLine size={16} style={{ verticalAlign: 'middle' }} />
                       </button>
                     </div>
                   </div>
@@ -1090,12 +1097,19 @@ const AdminPanel = () => {
       )}
 
       {/* =============================================
-          PLAYERS TAB - Complete
+          PLAYERS TAB
           ============================================= */}
       {activeTab === 'players' && (
         <div>
-          <h3 style={{ color: '#FFD700', marginBottom: '1.5rem' }}>
-            👥 Registered Players
+          <h3 style={{ 
+            color: '#FFD700', 
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <RiUserLine size={24} />
+            Registered Players ({players.length})
           </h3>
           
           {players.length === 0 ? (
@@ -1144,8 +1158,12 @@ const AdminPanel = () => {
                   }}>
                     <h3 style={{
                       color: '#FFD700',
-                      fontSize: '1.2rem'
+                      fontSize: '1.2rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
                     }}>
+                      <RiUserLine size={18} />
                       {player.fullname}
                     </h3>
                     <span style={{
@@ -1162,11 +1180,12 @@ const AdminPanel = () => {
                   </div>
                   
                   <div style={{ color: '#ccc', lineHeight: '2' }}>
-                    <p><span style={{ color: '#888' }}>📱 Phone:</span> {player.phone}</p>
-                    <p><span style={{ color: '#888' }}>⚖️ Weight:</span> {player.weightcategory}</p>
-                    <p><span style={{ color: '#888' }}>🎯 Experience:</span> {player.experience}</p>
-                    <p><span style={{ color: '#888' }}>💪 Dominant:</span> {player.dominantarm}</p>
-                    <p><span style={{ color: '#888' }}>🤝 Interested:</span> {player.interestedinteam}</p>
+                    <p><RiUser3Line size={14} style={{ verticalAlign: 'middle' }} /> Father: {player.fathername || 'N/A'}</p>
+                    <p><RiUserLine size={14} style={{ verticalAlign: 'middle' }} /> CNIC: {player.cnic}</p>
+                    <p><RiPhoneLine size={14} style={{ verticalAlign: 'middle' }} /> {player.phone}</p>
+                    <p><RiScaleLine size={14} style={{ verticalAlign: 'middle' }} /> {player.weightcategory}</p>
+                    <p><RiStarLine size={14} style={{ verticalAlign: 'middle' }} /> {player.experience}</p>
+                    <p><RiTeamLine size={14} style={{ verticalAlign: 'middle' }} /> {player.interestedinteam}</p>
                   </div>
                   
                   <div style={{
@@ -1188,12 +1207,17 @@ const AdminPanel = () => {
                           borderRadius: '8px',
                           cursor: 'pointer',
                           fontWeight: '600',
-                          transition: 'all 0.3s ease'
+                          transition: 'all 0.3s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
                         }}
                         onMouseEnter={(e) => e.target.style.background = '#27ae60'}
                         onMouseLeave={(e) => e.target.style.background = '#2ecc71'}
                       >
-                        ✅ Approve
+                        <RiCheckLine size={16} />
+                        Approve
                       </button>
                     )}
                     <button 
@@ -1206,7 +1230,10 @@ const AdminPanel = () => {
                         borderRadius: '8px',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        fontWeight: '600'
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
                       }}
                       onMouseEnter={(e) => {
                         e.target.style.background = '#e74c3c';
@@ -1217,7 +1244,7 @@ const AdminPanel = () => {
                         e.target.style.color = '#e74c3c';
                       }}
                     >
-                      🗑️
+                      <RiDeleteBinLine size={16} />
                     </button>
                   </div>
                 </div>
@@ -1228,7 +1255,7 @@ const AdminPanel = () => {
       )}
 
       {/* =============================================
-          MATCHES TAB - Complete with Timer
+          MATCHES TAB
           ============================================= */}
       {activeTab === 'matches' && (
         <div>
@@ -1240,8 +1267,15 @@ const AdminPanel = () => {
             flexWrap: 'wrap',
             gap: '1rem'
           }}>
-            <h3 style={{ color: '#FFD700', margin: 0 }}>
-              ⚔️ All Matches
+            <h3 style={{ 
+              color: '#FFD700', 
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <RiSwordLine size={24} />
+              All Matches ({matches.length})
             </h3>
             <div style={{
               padding: '0.5rem 1rem',
@@ -1249,7 +1283,8 @@ const AdminPanel = () => {
               borderRadius: '8px',
               border: '1px solid rgba(255,215,0,0.2)'
             }}>
-              <span style={{ color: '#888' }}>Auto-delete after: </span>
+              <RiTimeLine size={16} style={{ verticalAlign: 'middle' }} />
+              <span style={{ color: '#888' }}> Auto-delete after: </span>
               <span style={{ color: '#FFD700', fontWeight: 'bold' }}>
                 {autoDeleteDays} day{autoDeleteDays > 1 ? 's' : ''}
               </span>
@@ -1266,7 +1301,7 @@ const AdminPanel = () => {
             }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚔️</div>
               <p style={{ color: '#888', fontSize: '1.1rem' }}>
-                No matches generated yet. Go to "Generate Matches" tab!
+                No matches generated yet. Go to "Generate" tab!
               </p>
             </div>
           ) : (
@@ -1307,8 +1342,9 @@ const AdminPanel = () => {
                       alignItems: 'center',
                       marginBottom: '1rem'
                     }}>
-                      <h3 style={{ color: '#FFD700', fontSize: '1.1rem' }}>
-                        ⚔️ Match
+                      <h3 style={{ color: '#FFD700', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <RiSwordLine size={18} />
+                        Match
                       </h3>
                       <span style={{
                         padding: '0.3rem 0.8rem',
@@ -1344,8 +1380,13 @@ const AdminPanel = () => {
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ 
                           color: match.winner === match.player1_name ? '#FFD700' : '#FFFFFF',
-                          fontWeight: match.winner === match.player1_name ? 'bold' : 'normal'
+                          fontWeight: match.winner === match.player1_name ? 'bold' : 'normal',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
                         }}>
+                          <RiUserLine size={16} />
                           {match.player1_name}
                           {match.winner === match.player1_name && ' 🏆'}
                         </div>
@@ -1355,8 +1396,13 @@ const AdminPanel = () => {
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ 
                           color: match.winner === match.player2_name ? '#FFD700' : '#FFFFFF',
-                          fontWeight: match.winner === match.player2_name ? 'bold' : 'normal'
+                          fontWeight: match.winner === match.player2_name ? 'bold' : 'normal',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
                         }}>
+                          <RiUser3Line size={16} />
                           {match.player2_name}
                           {match.winner === match.player2_name && ' 🏆'}
                         </div>
@@ -1365,6 +1411,7 @@ const AdminPanel = () => {
                     </div>
                     
                     <p style={{ color: '#888', fontSize: '0.9rem', textAlign: 'center' }}>
+                      <RiTrophyLine size={14} style={{ verticalAlign: 'middle' }} />
                       Category: <span style={{ color: '#FFD700' }}>{match.category}</span>
                     </p>
                     
@@ -1377,6 +1424,7 @@ const AdminPanel = () => {
                         border: `1px solid ${expiring ? '#e74c3c' : '#2ecc71'}`,
                         textAlign: 'center'
                       }}>
+                        <RiTimeLine size={16} style={{ verticalAlign: 'middle' }} />
                         <span style={{ 
                           color: expiring ? '#e74c3c' : '#2ecc71',
                           fontSize: '0.9rem'
@@ -1418,10 +1466,14 @@ const AdminPanel = () => {
                             color: matchResult.winner ? '#0a0a0a' : '#666',
                             fontWeight: 'bold',
                             cursor: matchResult.winner ? 'pointer' : 'not-allowed',
-                            transition: 'all 0.3s ease'
+                            transition: 'all 0.3s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.3rem'
                           }}
                         >
-                          {loading ? '⏳ Updating...' : '🏆 Set Winner'}
+                          {loading ? '⏳ Updating...' : <><RiCheckLine size={18} /> Set Winner</>}
                         </button>
                       </div>
                     )}
@@ -1434,7 +1486,7 @@ const AdminPanel = () => {
       )}
 
       {/* =============================================
-          GENERATE MATCHES TAB - Complete
+          GENERATE MATCHES TAB
           ============================================= */}
       {activeTab === 'generate' && (
         <div style={{
@@ -1446,7 +1498,9 @@ const AdminPanel = () => {
           margin: '0 auto'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎲</div>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>
+              <RiDiceLine size={64} color="#FFD700" />
+            </div>
             <h3 style={{ color: '#FFD700', fontSize: '1.8rem' }}>Generate Random Matches</h3>
             <p style={{ color: '#888', marginTop: '0.5rem' }}>
               Create random matchups between approved players
@@ -1455,6 +1509,7 @@ const AdminPanel = () => {
           
           <div className="form-group">
             <label style={{ color: '#FFD700', display: 'block', marginBottom: '0.5rem' }}>
+              <RiTimeLine size={16} style={{ verticalAlign: 'middle' }} />
               Auto-Delete Completed Matches After
             </label>
             <select 
@@ -1482,6 +1537,7 @@ const AdminPanel = () => {
           
           <div className="form-group">
             <label style={{ color: '#FFD700', display: 'block', marginBottom: '0.5rem' }}>
+              <RiScaleLine size={16} style={{ verticalAlign: 'middle' }} />
               Select Weight Category
             </label>
             <select 
@@ -1522,11 +1578,15 @@ const AdminPanel = () => {
               fontWeight: 'bold',
               cursor: loading || weightCategories.length === 0 ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
-              opacity: loading || weightCategories.length === 0 ? 0.5 : 1
+              opacity: loading || weightCategories.length === 0 ? 0.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
             }}
             disabled={loading || weightCategories.length === 0}
           >
-            {loading ? '⏳ Generating...' : '🎲 Generate Matches'}
+            {loading ? '⏳ Generating...' : <><RiDiceLine size={20} /> Generate Matches</>}
           </button>
           
           <div style={{
@@ -1554,6 +1614,81 @@ const AdminPanel = () => {
               </span>
             </p>
           </div>
+        </div>
+      )}
+
+      {/* =============================================
+          GALLERY TAB
+          ============================================= */}
+      {activeTab === 'gallery' && (
+        <div style={{
+          background: 'rgba(26, 26, 26, 0.95)',
+          padding: '2.5rem',
+          borderRadius: '15px',
+          border: '1px solid rgba(255,215,0,0.2)',
+          textAlign: 'center'
+        }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <RiImageLine size={64} color="#FFD700" />
+          </div>
+          <h3 style={{ color: '#FFD700', fontSize: '1.8rem', marginBottom: '0.5rem' }}>
+            Gallery Management
+          </h3>
+          <p style={{ color: '#888', marginBottom: '1.5rem' }}>
+            Manage player images, roles, and profiles for the gallery section
+          </p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem',
+            maxWidth: '500px',
+            margin: '0 auto'
+          }}>
+            <div style={{
+              background: 'rgba(255,215,0,0.05)',
+              padding: '1rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,215,0,0.1)'
+            }}>
+              <RiUserStarLine size={28} color="#FFD700" />
+              <p style={{ color: '#FFD700', fontWeight: 'bold', marginTop: '0.3rem' }}>Captain</p>
+              <p style={{ color: '#888', fontSize: '0.8rem' }}>1 allowed</p>
+            </div>
+            <div style={{
+              background: 'rgba(255,215,0,0.05)',
+              padding: '1rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,215,0,0.1)'
+            }}>
+              <RiShieldStarLine size={28} color="#DAA520" />
+              <p style={{ color: '#DAA520', fontWeight: 'bold', marginTop: '0.3rem' }}>Sub-Captain</p>
+              <p style={{ color: '#888', fontSize: '0.8rem' }}>2 allowed</p>
+            </div>
+            <div style={{
+              background: 'rgba(255,215,0,0.05)',
+              padding: '1rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,215,0,0.1)'
+            }}>
+              <RiUserHeartLine size={28} color="#00b894" />
+              <p style={{ color: '#00b894', fontWeight: 'bold', marginTop: '0.3rem' }}>Management</p>
+              <p style={{ color: '#888', fontSize: '0.8rem' }}>Unlimited</p>
+            </div>
+          </div>
+          <Link 
+            to="/admin-gallery" 
+            className="btn btn-primary" 
+            style={{ 
+              marginTop: '2rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <RiImageLine size={20} />
+            Go to Gallery Management
+            <RiArrowRightLine size={18} />
+          </Link>
         </div>
       )}
     </div>
