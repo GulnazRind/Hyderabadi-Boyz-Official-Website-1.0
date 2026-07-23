@@ -5,7 +5,8 @@ import {
   RiFileListLine, 
   RiUserAddLine, 
   RiAdminLine,
-  RiShieldStarLine
+  RiShieldStarLine,
+  RiImageLine
 } from '@remixicon/react';
 
 const Navbar = () => {
@@ -23,6 +24,12 @@ const Navbar = () => {
             <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
               <RiHomeLine size={18} />
               Home
+            </Link>
+          </li>
+          <li>
+            <Link to="/gallery" className={location.pathname === '/gallery' ? 'active' : ''}>
+              <RiImageLine size={18} />
+              Gallery
             </Link>
           </li>
           <li>
