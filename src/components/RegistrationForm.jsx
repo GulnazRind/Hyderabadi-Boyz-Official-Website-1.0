@@ -10,6 +10,8 @@ const RegistrationForm = () => {
     fullname: '',
     fathername: '',
     cnic: '',
+    formNumber: '', // NEW FIELD - For those without CNIC
+    idType: 'cnic', // NEW FIELD - CNIC or Form-B
     dateofbirth: '',
     phone: '',
     email: '',
@@ -85,29 +87,47 @@ const RegistrationForm = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      if (!formData.fullname || !formData.cnic || !formData.dateofbirth || 
-          !formData.phone || !formData.address || !formData.weightcategory || 
-          !formData.experience || !formData.dominantarm || !formData.whyarmwrestling || 
-          !formData.availability) {
-        throw new Error('Please fill all required fields');
+      // Validation: Either CNIC or Form Number is required
+      if (!formData.cnic.trim() && !formData.formNumber.trim()) {
+        throw new Error('Please provide either CNIC Number or Form Number');
       }
 
-      const { data: existingPlayer, error: checkError } = await supabase
-        .from('players')
-        .select('cnic')
-        .eq('cnic', formData.cnic)
-        .single();
+      // If CNIC is provided, check for duplicates
+      if (formData.cnic.trim()) {
+        const { data: existingPlayer, error: checkError } = await supabase
+          .from('players')
+          .select('cnic')
+          .eq('cnic', formData.cnic.trim())
+          .single();
 
-      if (existingPlayer) {
-        setMessage({ type: 'error', text: '❌ A player with this CNIC already exists!' });
-        setLoading(false);
-        return;
+        if (existingPlayer) {
+          setMessage({ type: 'error', text: '❌ A player with this CNIC already exists!' });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // If Form Number is provided, check for duplicates
+      if (formData.formNumber.trim()) {
+        const { data: existingPlayer, error: checkError } = await supabase
+          .from('players')
+          .select('form_number')
+          .eq('form_number', formData.formNumber.trim())
+          .single();
+
+        if (existingPlayer) {
+          setMessage({ type: 'error', text: '❌ A player with this Form Number already exists!' });
+          setLoading(false);
+          return;
+        }
       }
 
       const playerData = {
         fullname: formData.fullname.trim(),
         fathername: formData.fathername ? formData.fathername.trim() : '',
-        cnic: formData.cnic.trim(),
+        cnic: formData.cnic.trim() || '',
+        form_number: formData.formNumber.trim() || '', // NEW FIELD
+        id_type: formData.idType, // NEW FIELD - 'cnic' or 'form-b'
         dateofbirth: formData.dateofbirth,
         phone: formData.phone.trim(),
         email: formData.email ? formData.email.trim() : '',
@@ -141,6 +161,8 @@ const RegistrationForm = () => {
         fullname: '',
         fathername: '',
         cnic: '',
+        formNumber: '',
+        idType: 'cnic',
         dateofbirth: '',
         phone: '',
         email: '',
@@ -258,16 +280,78 @@ const RegistrationForm = () => {
           />
         </div>
 
+        {/* =============================================
+            ID TYPE SELECTION - NEW
+            ============================================= */}
         <div className="form-group">
-          <label>🪪 CNIC Number *</label>
+          <label>🪪 ID Type *</label>
+          <select
+            name="idType"
+            value={formData.idType}
+            onChange={handleChange}
+            required
+          >
+            <option value="cnic">CNIC (Computerized National Identity Card)</option>
+            <option value="form-b">Form-B (For those without CNIC)</option>
+          </select>
+        </div>
+
+        {/* =============================================
+            CNIC NUMBER - Optional now
+            ============================================= */}
+        <div className="form-group">
+          <label>
+            🪪 CNIC Number 
+            {formData.idType === 'cnic' && <span style={{ color: '#e74c3c' }}> *</span>}
+            <span style={{ color: '#888', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+              (Required if you have CNIC)
+            </span>
+          </label>
           <input
             type="text"
             name="cnic"
             value={formData.cnic}
             onChange={handleChange}
-            required
+            required={formData.idType === 'cnic'}
             placeholder="XXXXX-XXXXXXX-X"
+            style={{
+              borderColor: formData.idType === 'cnic' && !formData.cnic ? '#e74c3c' : undefined
+            }}
           />
+          {formData.idType === 'cnic' && !formData.cnic && (
+            <p style={{ color: '#e74c3c', fontSize: '0.8rem', marginTop: '0.3rem' }}>
+              ⚠️ CNIC Number is required for this ID type
+            </p>
+          )}
+        </div>
+
+        {/* =============================================
+            FORM NUMBER - NEW FIELD
+            ============================================= */}
+        <div className="form-group">
+          <label>
+            📄 Form Number 
+            {formData.idType === 'form-b' && <span style={{ color: '#e74c3c' }}> *</span>}
+            <span style={{ color: '#888', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+              (For those without CNIC)
+            </span>
+          </label>
+          <input
+            type="text"
+            name="formNumber"
+            value={formData.formNumber}
+            onChange={handleChange}
+            required={formData.idType === 'form-b'}
+            placeholder="Enter your Form-B number"
+            style={{
+              borderColor: formData.idType === 'form-b' && !formData.formNumber ? '#e74c3c' : undefined
+            }}
+          />
+          {formData.idType === 'form-b' && !formData.formNumber && (
+            <p style={{ color: '#e74c3c', fontSize: '0.8rem', marginTop: '0.3rem' }}>
+              ⚠️ Form Number is required for this ID type
+            </p>
+          )}
         </div>
 
         <div className="form-group">
