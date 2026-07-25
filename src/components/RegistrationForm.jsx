@@ -10,8 +10,9 @@ const RegistrationForm = () => {
     fullname: '',
     fathername: '',
     cnic: '',
-    formNumber: '', // NEW FIELD - For those without CNIC
-    idType: 'cnic', // NEW FIELD - CNIC or Form-B
+    formNumber: '',
+    passportNumber: '',
+    idType: 'cnic', // cnic, form-b, passport, none
     dateofbirth: '',
     phone: '',
     email: '',
@@ -24,7 +25,8 @@ const RegistrationForm = () => {
     whyarmwrestling: '',
     interestedinteam: 'yes',
     availability: '',
-    tournamentid: tournamentId || ''
+    tournamentid: tournamentId || '',
+    idNote: '' // Extra note for "None" option
   });
 
   const [tournaments, setTournaments] = useState([]);
@@ -73,6 +75,14 @@ const RegistrationForm = () => {
   const experienceLevels = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
   const dominantArms = ['Right', 'Left', 'Both'];
 
+  // ID Types with labels
+  const idTypes = [
+    { value: 'cnic', label: 'CNIC (Computerized National Identity Card)' },
+    { value: 'form-b', label: 'Form-B (Child Registration Certificate)' },
+    { value: 'passport', label: 'Passport (International)' },
+    { value: 'none', label: 'None (No ID available)' }
+  ];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -87,12 +97,20 @@ const RegistrationForm = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      // Validation: Either CNIC or Form Number is required
-      if (!formData.cnic.trim() && !formData.formNumber.trim()) {
-        throw new Error('Please provide either CNIC Number or Form Number');
+      // Validation: At least one ID field if not "none"
+      if (formData.idType !== 'none') {
+        if (formData.idType === 'cnic' && !formData.cnic.trim()) {
+          throw new Error('Please enter your CNIC number');
+        }
+        if (formData.idType === 'form-b' && !formData.formNumber.trim()) {
+          throw new Error('Please enter your Form-B number');
+        }
+        if (formData.idType === 'passport' && !formData.passportNumber.trim()) {
+          throw new Error('Please enter your Passport number');
+        }
       }
 
-      // If CNIC is provided, check for duplicates
+      // Check duplicates for CNIC
       if (formData.cnic.trim()) {
         const { data: existingPlayer, error: checkError } = await supabase
           .from('players')
@@ -107,7 +125,7 @@ const RegistrationForm = () => {
         }
       }
 
-      // If Form Number is provided, check for duplicates
+      // Check duplicates for Form-B
       if (formData.formNumber.trim()) {
         const { data: existingPlayer, error: checkError } = await supabase
           .from('players')
@@ -116,7 +134,22 @@ const RegistrationForm = () => {
           .single();
 
         if (existingPlayer) {
-          setMessage({ type: 'error', text: '❌ A player with this Form Number already exists!' });
+          setMessage({ type: 'error', text: '❌ A player with this Form-B number already exists!' });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Check duplicates for Passport
+      if (formData.passportNumber.trim()) {
+        const { data: existingPlayer, error: checkError } = await supabase
+          .from('players')
+          .select('passport_number')
+          .eq('passport_number', formData.passportNumber.trim())
+          .single();
+
+        if (existingPlayer) {
+          setMessage({ type: 'error', text: '❌ A player with this Passport number already exists!' });
           setLoading(false);
           return;
         }
@@ -126,8 +159,10 @@ const RegistrationForm = () => {
         fullname: formData.fullname.trim(),
         fathername: formData.fathername ? formData.fathername.trim() : '',
         cnic: formData.cnic.trim() || '',
-        form_number: formData.formNumber.trim() || '', // NEW FIELD
-        id_type: formData.idType, // NEW FIELD - 'cnic' or 'form-b'
+        form_number: formData.formNumber.trim() || '',
+        passport_number: formData.passportNumber.trim() || '',
+        id_type: formData.idType,
+        id_note: formData.idType === 'none' ? formData.idNote?.trim() || 'No ID provided' : '',
         dateofbirth: formData.dateofbirth,
         phone: formData.phone.trim(),
         email: formData.email ? formData.email.trim() : '',
@@ -162,6 +197,7 @@ const RegistrationForm = () => {
         fathername: '',
         cnic: '',
         formNumber: '',
+        passportNumber: '',
         idType: 'cnic',
         dateofbirth: '',
         phone: '',
@@ -175,7 +211,8 @@ const RegistrationForm = () => {
         whyarmwrestling: '',
         interestedinteam: 'yes',
         availability: '',
-        tournamentid: tournamentId || ''
+        tournamentid: tournamentId || '',
+        idNote: ''
       });
       
     } catch (error) {
@@ -186,6 +223,26 @@ const RegistrationForm = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Get placeholder for ID field based on type
+  const getIdPlaceholder = () => {
+    switch(formData.idType) {
+      case 'cnic': return 'XXXXX-XXXXXXX-X';
+      case 'form-b': return 'Enter your Form-B number';
+      case 'passport': return 'Enter your Passport number';
+      default: return '';
+    }
+  };
+
+  // Get label for ID field based on type
+  const getIdLabel = () => {
+    switch(formData.idType) {
+      case 'cnic': return '🪪 CNIC Number';
+      case 'form-b': return '📄 Form-B Number';
+      case 'passport': return '🛂 Passport Number';
+      default: return '';
     }
   };
 
@@ -281,7 +338,7 @@ const RegistrationForm = () => {
         </div>
 
         {/* =============================================
-            ID TYPE SELECTION - NEW
+            ID TYPE SELECTION - 4 OPTIONS
             ============================================= */}
         <div className="form-group">
           <label>🪪 ID Type *</label>
@@ -290,69 +347,85 @@ const RegistrationForm = () => {
             value={formData.idType}
             onChange={handleChange}
             required
+            style={{
+              padding: '0.8rem',
+              borderRadius: '8px',
+              border: '1px solid #FFD700',
+              background: '#0a0a0a',
+              color: 'white',
+              width: '100%'
+            }}
           >
-            <option value="cnic">CNIC (Computerized National Identity Card)</option>
-            <option value="form-b">Form-B (For those without CNIC)</option>
+            {idTypes.map(type => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
           </select>
-        </div>
-
-        {/* =============================================
-            CNIC NUMBER - Optional now
-            ============================================= */}
-        <div className="form-group">
-          <label>
-            🪪 CNIC Number 
-            {formData.idType === 'cnic' && <span style={{ color: '#e74c3c' }}> *</span>}
-            <span style={{ color: '#888', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-              (Required if you have CNIC)
-            </span>
-          </label>
-          <input
-            type="text"
-            name="cnic"
-            value={formData.cnic}
-            onChange={handleChange}
-            required={formData.idType === 'cnic'}
-            placeholder="XXXXX-XXXXXXX-X"
-            style={{
-              borderColor: formData.idType === 'cnic' && !formData.cnic ? '#e74c3c' : undefined
-            }}
-          />
-          {formData.idType === 'cnic' && !formData.cnic && (
-            <p style={{ color: '#e74c3c', fontSize: '0.8rem', marginTop: '0.3rem' }}>
-              ⚠️ CNIC Number is required for this ID type
+          {formData.idType === 'none' && (
+            <p style={{ color: '#f39c12', fontSize: '0.85rem', marginTop: '0.3rem' }}>
+              ⚠️ If you select "None", please provide a reason or alternative identification.
             </p>
           )}
         </div>
 
         {/* =============================================
-            FORM NUMBER - NEW FIELD
+            ID NUMBER FIELD (Dynamic)
             ============================================= */}
-        <div className="form-group">
-          <label>
-            📄 Form Number 
-            {formData.idType === 'form-b' && <span style={{ color: '#e74c3c' }}> *</span>}
-            <span style={{ color: '#888', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-              (For those without CNIC)
-            </span>
-          </label>
-          <input
-            type="text"
-            name="formNumber"
-            value={formData.formNumber}
-            onChange={handleChange}
-            required={formData.idType === 'form-b'}
-            placeholder="Enter your Form-B number"
-            style={{
-              borderColor: formData.idType === 'form-b' && !formData.formNumber ? '#e74c3c' : undefined
-            }}
-          />
-          {formData.idType === 'form-b' && !formData.formNumber && (
-            <p style={{ color: '#e74c3c', fontSize: '0.8rem', marginTop: '0.3rem' }}>
-              ⚠️ Form Number is required for this ID type
-            </p>
-          )}
-        </div>
+        {formData.idType !== 'none' && (
+          <div className="form-group">
+            <label>
+              {getIdLabel()}
+              <span style={{ color: '#e74c3c' }}> *</span>
+            </label>
+            <input
+              type="text"
+              name={
+                formData.idType === 'cnic' ? 'cnic' :
+                formData.idType === 'form-b' ? 'formNumber' :
+                'passportNumber'
+              }
+              value={
+                formData.idType === 'cnic' ? formData.cnic :
+                formData.idType === 'form-b' ? formData.formNumber :
+                formData.passportNumber
+              }
+              onChange={handleChange}
+              required={formData.idType !== 'none'}
+              placeholder={getIdPlaceholder()}
+            />
+          </div>
+        )}
+
+        {/* =============================================
+            ID NOTE (For "None" option)
+            ============================================= */}
+        {formData.idType === 'none' && (
+          <div className="form-group">
+            <label>
+              📝 Reason / Note
+              <span style={{ color: '#e74c3c' }}> *</span>
+            </label>
+            <textarea
+              name="idNote"
+              value={formData.idNote}
+              onChange={handleChange}
+              required
+              placeholder="Please explain why you don't have any ID or provide alternative details..."
+              rows="2"
+              style={{
+                width: '100%',
+                padding: '0.8rem',
+                background: '#0a0a0a',
+                border: '1px solid #333',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '1rem',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+        )}
 
         <div className="form-group">
           <label>📅 Date of Birth *</label>
