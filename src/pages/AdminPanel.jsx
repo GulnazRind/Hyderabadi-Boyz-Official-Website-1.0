@@ -421,27 +421,67 @@ const AdminPanel = () => {
   // PLAYER MANAGEMENT - COMPLETE
   // =============================================
   const approvePlayer = async (playerId) => {
-    try {
-      setError('');
-      setLoading(true);
-      
-      const { error } = await supabase
-        .from('players')
-        .update({ status: 'approved' })
-        .eq('id', playerId);
+  try {
+    setError('');
+    setLoading(true);
+    
+    // First, get player details
+    const { data: player, error: fetchError } = await supabase
+      .from('players')
+      .select('*')
+      .eq('id', playerId)
+      .single();
 
-      if (error) throw error;
-      await fetchAllData();
-      setSuccess('✅ Player approved!');
-      setTimeout(() => setSuccess(''), 3000);
-      
-    } catch (error) {
-      console.error('Error approving player:', error);
-      setError('❌ Failed to approve player: ' + error.message);
-    } finally {
-      setLoading(false);
+    if (fetchError) throw fetchError;
+
+    // Update player status to approved
+    const { error: updateError } = await supabase
+      .from('players')
+      .update({ status: 'approved' })
+      .eq('id', playerId);
+
+    if (updateError) throw updateError;
+
+    // Send approval email if email exists
+    if (player.email) {
+      try {
+        const response = await fetch('http://localhost:5000/api/email/send-approval', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: player.email,
+            name: player.fullname,
+            playerId: player.id
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          setSuccess(`✅ ${player.fullname} approved! Verification email sent to ${player.email}`);
+        } else {
+          setSuccess(`✅ ${player.fullname} approved! But email failed: ${result.message}`);
+        }
+      } catch (emailError) {
+        console.error('Email error:', emailError);
+        setSuccess(`✅ ${player.fullname} approved! But email could not be sent.`);
+      }
+    } else {
+      setSuccess(`✅ ${player.fullname} approved! (No email address provided)`);
     }
-  };
+    
+    await fetchAllData();
+    setTimeout(() => setSuccess(''), 5000);
+    
+  } catch (error) {
+    console.error('Error approving player:', error);
+    setError('❌ Failed to approve player: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const deletePlayer = async (playerId) => {
     if (!window.confirm('Are you sure you want to delete this player?')) return;
@@ -1023,122 +1063,166 @@ const AdminPanel = () => {
       )}
 
       {/* =============================================
-          PLAYERS TAB - COMPLETE
-          ============================================= */}
-      {activeTab === 'players' && (
-        <div>
-          <h3 style={{ color: '#FFD700', marginBottom: '1.5rem' }}>
-            👥 Registered Players ({players.length})
-          </h3>
-          
-          {players.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '3rem',
-              background: 'rgba(26,26,26,0.5)',
+    PLAYERS TAB
+    ============================================= */}
+{activeTab === 'players' && (
+  <div>
+    <h3 style={{ color: '#FFD700', marginBottom: '1.5rem' }}>
+      👥 Registered Players ({players.length})
+    </h3>
+    
+    {players.length === 0 ? (
+      <div style={{
+        textAlign: 'center',
+        padding: '3rem',
+        background: 'rgba(26,26,26,0.5)',
+        borderRadius: '15px',
+        border: '1px dashed rgba(255,215,0,0.3)'
+      }}>
+        <p style={{ color: '#888', fontSize: '1.1rem' }}>
+          No players registered yet.
+        </p>
+      </div>
+    ) : (
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: '1.5rem'
+      }}>
+        {players.map(player => (
+          <div
+            key={player.id}
+            style={{
+              background: 'rgba(26, 26, 26, 0.95)',
               borderRadius: '15px',
-              border: '1px dashed rgba(255,215,0,0.3)'
-            }}>
-              <p style={{ color: '#888', fontSize: '1.1rem' }}>No players registered yet.</p>
-            </div>
-          ) : (
+              padding: '1.5rem',
+              border: `1px solid ${player.status === 'approved' ? '#2ecc71' : 'rgba(255,215,0,0.2)'}`,
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px)';
+              e.currentTarget.style.boxShadow = '0 10px 30px rgba(255,215,0,0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '1.5rem'
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'start',
+              marginBottom: '0.5rem'
             }}>
-              {players.map(player => (
-                <div
-                  key={player.id}
+              <h3 style={{ color: '#FFD700', fontSize: '1.2rem' }}>
+                👤 {player.fullname}
+              </h3>
+              <span style={{
+                padding: '0.3rem 0.8rem',
+                borderRadius: '20px',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                background: player.status === 'approved' ? 'rgba(46, 204, 113, 0.2)' : 'rgba(243, 156, 18, 0.2)',
+                color: player.status === 'approved' ? '#2ecc71' : '#f39c12',
+                border: `1px solid ${player.status === 'approved' ? '#2ecc71' : '#f39c12'}`
+              }}>
+                {player.status || 'Pending'}
+              </span>
+            </div>
+            
+            {/* =============================================
+                PLAYER DETAILS - YAHAN PE CHANGE KARNA HAI
+                ============================================= */}
+            <div style={{ color: '#ccc', lineHeight: '2' }}>
+  <p>📱 Phone: {player.phone}</p>
+  <p>⚖️ Weight: {player.weightcategory}</p>
+  <p>⭐ Experience: {player.experience}</p>
+  <p>💪 Dominant: {player.dominantarm}</p>
+  <p>✉️ Email: {player.email || 'N/A'}</p>
+  <p>
+    📊 Approval Status: 
+    <span style={{
+      color: player.approval_status === 'approved' ? '#2ecc71' : 
+             player.approval_status === 'pending_verification' ? '#f39c12' : 
+             player.approval_status === 'rejected' ? '#e74c3c' : '#888',
+      fontWeight: 'bold'
+    }}>
+      {player.approval_status === 'approved' ? '✅ Approved' : 
+       player.approval_status === 'pending_verification' ? '⏳ Waiting for Verification' : 
+       player.approval_status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+    </span>
+  </p>
+  <p>
+    ✅ Verified: 
+    <span style={{
+      color: player.email_verified ? '#2ecc71' : '#f39c12',
+      fontWeight: 'bold'
+    }}>
+      {player.email_verified ? 'Yes ✅' : 'Pending ⏳'}
+    </span>
+  </p>
+  {player.verification_response && (
+    <p>
+      Response: 
+      <span style={{
+        color: player.verification_response === 'yes' ? '#2ecc71' : '#e74c3c',
+        fontWeight: 'bold'
+      }}>
+        {player.verification_response === 'yes' ? 'Confirmed ✅' : 'Rejected ❌'}
+      </span>
+    </p>
+  )}
+  {player.email_sent && (
+    <p style={{ color: '#888', fontSize: '0.85rem' }}>
+      📧 Email sent: {new Date(player.email_sent_at).toLocaleString()}
+    </p>
+  )}
+</div>
+            
+            <div style={{
+              marginTop: '1rem',
+              display: 'flex',
+              gap: '0.5rem',
+              borderTop: '1px solid rgba(255,215,0,0.1)',
+              paddingTop: '1rem'
+            }}>
+              {player.status !== 'approved' && (
+                <button 
+                  onClick={() => approvePlayer(player.id)}
                   style={{
-                    background: 'rgba(26, 26, 26, 0.95)',
-                    borderRadius: '15px',
-                    padding: '1.5rem',
-                    border: `1px solid ${player.status === 'approved' ? '#2ecc71' : 'rgba(255,215,0,0.2)'}`,
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-5px)';
-                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(255,215,0,0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    flex: 1,
+                    padding: '0.6rem',
+                    background: '#2ecc71',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600'
                   }}
                 >
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'start',
-                    marginBottom: '0.5rem'
-                  }}>
-                    <h3 style={{ color: '#FFD700', fontSize: '1.2rem' }}>👤 {player.fullname}</h3>
-                    <span style={{
-                      padding: '0.3rem 0.8rem',
-                      borderRadius: '20px',
-                      fontSize: '0.8rem',
-                      fontWeight: 'bold',
-                      background: player.status === 'approved' ? 'rgba(46, 204, 113, 0.2)' : 'rgba(243, 156, 18, 0.2)',
-                      color: player.status === 'approved' ? '#2ecc71' : '#f39c12',
-                      border: `1px solid ${player.status === 'approved' ? '#2ecc71' : '#f39c12'}`
-                    }}>
-                      {player.status || 'Pending'}
-                    </span>
-                  </div>
-                  
-                  <div style={{ color: '#ccc', lineHeight: '2' }}>
-                    <p>📱 Phone: {player.phone}</p>
-                    <p>⚖️ Weight: {player.weightcategory}</p>
-                    <p>⭐ Experience: {player.experience}</p>
-                    <p>💪 Dominant: {player.dominantarm}</p>
-                    <p>🤝 Interested: {player.interestedinteam}</p>
-                  </div>
-                  
-                  <div style={{
-                    marginTop: '1rem',
-                    display: 'flex',
-                    gap: '0.5rem',
-                    borderTop: '1px solid rgba(255,215,0,0.1)',
-                    paddingTop: '1rem'
-                  }}>
-                    {player.status !== 'approved' && (
-                      <button 
-                        onClick={() => approvePlayer(player.id)}
-                        style={{
-                          flex: 1,
-                          padding: '0.6rem',
-                          background: '#2ecc71',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontWeight: '600'
-                        }}
-                      >
-                        ✅ Approve
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => deletePlayer(player.id)}
-                      style={{
-                        padding: '0.6rem 1.2rem',
-                        background: 'rgba(231, 76, 60, 0.2)',
-                        color: '#e74c3c',
-                        border: '1px solid #e74c3c',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              ))}
+                  ✅ Approve
+                </button>
+              )}
+              <button 
+                onClick={() => deletePlayer(player.id)}
+                style={{
+                  padding: '0.6rem 1.2rem',
+                  background: 'rgba(231, 76, 60, 0.2)',
+                  color: '#e74c3c',
+                  border: '1px solid #e74c3c',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                🗑️
+              </button>
             </div>
-          )}
-        </div>
-      )}
-
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
       {/* =============================================
           MATCHES TAB - COMPLETE
           ============================================= */}
