@@ -1,0 +1,169 @@
+.home-container { padding: 0; }
+
+.hero-section {
+  position: relative;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  border-radius: 20px;
+  margin-bottom: 3rem;
+  overflow: hidden;
+  background: #0a0a0a;
+  border: 1px solid rgba(255,215,0,0.1);
+}
+
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&q=80');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.15;
+  z-index: 0;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(10,10,10,0.85), rgba(26,26,26,0.7));
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 800px;
+}
+
+.hero-badge {
+  display: inline-block;
+  padding: 0.5rem 1.5rem;
+  background: rgba(255,215,0,0.15);
+  border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 50px;
+  color: #FFD700;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+.hero-title .gold-text { color: #FFD700; text-shadow: 0 0 30px rgba(255,215,0,0.3); }
+.hero-subtitle { font-size: 1.5rem; color: #ffffff; margin-bottom: 1rem; font-weight: 300; }
+.hero-description { font-size: 1.1rem; color: #888; max-width: 600px; margin: 0 auto 2rem; line-height: 1.8; }
+.hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+.section-container { margin-bottom: 3rem; }
+.section-title { text-align: center; font-size: 2.2rem; color: #FFD700; margin-bottom: 2rem; }
+
+.tournament-card { position: relative; overflow: hidden; }
+.card-status {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.3rem 1rem;
+  border-radius: 0 15px 0 15px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.card-status.upcoming { background: #f39c12; color: #0a0a0a; }
+.card-status.active { background: #2ecc71; color: #0a0a0a; animation: pulse 1.5s infinite; }
+.card-status.completed { background: #3498db; color: white; }
+
+.timer-box {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255,215,0,0.1);
+  border-radius: 8px;
+  color: #FFD700;
+  font-size: 0.9rem;
+}
+
+.live-box {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(46,204,113,0.1);
+  border-radius: 8px;
+  color: #2ecc71;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.live-dot {
+  width: 10px;
+  height: 10px;
+  background: #2ecc71;
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+.register-btn { width: 100%; text-align: center; margin-top: 1rem; display: block; }
+
+.vision-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  padding: 0 2rem;
+}
+
+.vision-card {
+  background: rgba(26,26,26,0.9);
+  padding: 2rem;
+  border-radius: 15px;
+  text-align: center;
+  border: 1px solid rgba(255,215,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.vision-card:hover { transform: translateY(-5px); border-color: #FFD700; }
+.vision-icon { font-size: 3rem; margin-bottom: 1rem; }
+.vision-card h3 { color: #FFD700; font-size: 1.3rem; margin-bottom: 0.5rem; }
+.vision-card p { color: #888; line-height: 1.6; }
+
+.loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+.loading-shimmer {
+  height: 250px;
+  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 15px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(26,26,26,0.5);
+  border-radius: 15px;
+  border: 1px dashed rgba(255,215,0,0.3);
+}
+.empty-state p { color: #888; font-size: 1.1rem; }
+.empty-state .empty-sub { font-size: 0.9rem; color: #666; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+@media (max-width: 768px) {
+  .hero-title { font-size: 2.2rem; }
+  .hero-subtitle { font-size: 1.2rem; }
+  .vision-grid { grid-template-columns: 1fr; padding: 0; }
+  .hero-section { padding: 2rem 1rem; min-height: 300px; }
+}

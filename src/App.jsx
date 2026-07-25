@@ -10,7 +10,7 @@ import AdminLogin from './components/AdminLogin';
 import AdminPanel from './pages/AdminPanel';
 import AdminGallery from './pages/AdminGallery';
 import EmailVerification from './components/EmailVerification';
-import LiveStream from './components/LiveStream';
+// import LiveStream from './components/LiveStream';  // ← COMMENT KAREIN
 import './App.css';
 
 function App() {
@@ -29,7 +29,7 @@ function App() {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/register" element={<RegistrationForm />} />
             <Route path="/matches" element={<Matches />} />
-            <Route path="/live" element={<LiveStream />} />
+            {/* <Route path="/live" element={<LiveStream />} /> */}  {/* ← COMMENT KAREIN */}
             <Route path="/verify-email" element={<EmailVerification />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin-panel" element={<AdminPanel />} />
