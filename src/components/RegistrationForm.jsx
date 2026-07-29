@@ -71,7 +71,7 @@ const RegistrationForm = () => {
     }
   };
 
-  const weightCategories = ['55-60 kg', '60-70 kg', '70-80 kg', '80-90 kg', '90-100 kg', '100+ kg'];
+  const weightCategories = ['50-60 kg', '60-70 kg', '70-80 kg', '80-90 kg', '90-100 kg', '100+ kg'];
   const experienceLevels = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
   const dominantArms = ['Right', 'Left', 'Both'];
 
