@@ -44,7 +44,7 @@ const EmailVerification = () => {
 
         setResult({
           success: true,
-          message: `Thank you ${player.fullname}! Your registration has been verified. You are now officially part of Hyderabadi Boyz! 🎉`
+          message: `Thank you ${player.fullname}! Your registration has been verified. You are now officially part of Mini Junior ArmWrestling Tournament! 🎉`
         });
 
       } else {

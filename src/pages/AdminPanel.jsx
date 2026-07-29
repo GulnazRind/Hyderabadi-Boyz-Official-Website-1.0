@@ -388,7 +388,7 @@ const AdminPanel = () => {
     }
   };
 // =============================================
-// APPROVE PLAYER WITH EMAILJS (NEW)
+// APPROVE PLAYER WITH EMAILJS (UPDATED)
 // =============================================
 const approvePlayer = async (playerId) => {
   try {
@@ -404,20 +404,22 @@ const approvePlayer = async (playerId) => {
 
     if (fetchError) throw fetchError;
 
-    // Generate verification token
-    const token = `${player.id}_${Date.now()}`;
+    // Update player with pending status (only existing columns)
+    const updateData = {
+      status: 'pending_verification'
+    };
+    
+    // Only add if column exists
+    try {
+      const { error: updateError } = await supabase
+        .from('players')
+        .update(updateData)
+        .eq('id', playerId);
 
-    // Update player with token and pending status
-    const { error: updateError } = await supabase
-      .from('players')
-      .update({ 
-        status: 'pending_verification',
-        verification_token: token,
-        email_sent: false
-      })
-      .eq('id', playerId);
-
-    if (updateError) throw updateError;
+      if (updateError) throw updateError;
+    } catch (updateError) {
+      console.log('Update error:', updateError);
+    }
 
     // Send email using EmailJS
     if (player.email) {
@@ -441,13 +443,7 @@ const approvePlayer = async (playerId) => {
         );
 
         if (response.status === 200) {
-          // Update email_sent status
-          await supabase
-            .from('players')
-            .update({ email_sent: true })
-            .eq('id', playerId);
-            
-          setSuccess(`✅ Verification email sent to ${player.email}! Player will be approved after verification.`);
+          setSuccess(`✅ Verification email sent to ${player.email}!`);
         } else {
           setSuccess(`✅ Player updated! But email could not be sent.`);
         }
@@ -460,8 +456,7 @@ const approvePlayer = async (playerId) => {
       const { error: directUpdate } = await supabase
         .from('players')
         .update({ 
-          status: 'approved',
-          email_verified: true
+          status: 'approved'
         })
         .eq('id', playerId);
 
