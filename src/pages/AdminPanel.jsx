@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
+import emailjs from '@emailjs/browser';
 
 const AdminPanel = () => {
   const [players, setPlayers] = useState([]);
@@ -146,32 +147,7 @@ const AdminPanel = () => {
     }
   };
 
-  // =============================================
-  // DELETE OLD COMPLETED MATCHES
-  // =============================================
-  const deleteOldCompletedMatches = async () => {
-    try {
-      const now = new Date();
-      const daysToKeep = autoDeleteDays || 2;
-      const cutoffDate = new Date(now.getTime() - (daysToKeep * 24 * 60 * 60 * 1000));
-      
-      const { data, error } = await supabase
-        .from('matches')
-        .delete()
-        .eq('status', 'completed')
-        .lt('completed_at', cutoffDate.toISOString());
-
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        console.log(`🗑️ Deleted ${data.length} old completed matches`);
-        await fetchAllData();
-      }
-      
-    } catch (error) {
-      console.error('Error deleting old matches:', error);
-    }
-  };
+  
 
   // =============================================
   // TOURNAMENT MANAGEMENT - COMPLETE
@@ -417,71 +393,90 @@ const AdminPanel = () => {
     }
   };
 
-  // =============================================
-  // PLAYER MANAGEMENT - COMPLETE
+    // =============================================
+  // PLAYER MANAGEMENT - COMPLETE (With EmailJS)
   // =============================================
   const approvePlayer = async (playerId) => {
-  try {
-    setError('');
-    setLoading(true);
-    
-    // First, get player details
-    const { data: player, error: fetchError } = await supabase
-      .from('players')
-      .select('*')
-      .eq('id', playerId)
-      .single();
+    try {
+      setError('');
+      setLoading(true);
+      
+      // Get player details
+      const { data: player, error: fetchError } = await supabase
+        .from('players')
+        .select('*')
+        .eq('id', playerId)
+        .single();
 
-    if (fetchError) throw fetchError;
+      if (fetchError) throw fetchError;
 
-    // Update player status to approved
-    const { error: updateError } = await supabase
-      .from('players')
-      .update({ status: 'approved' })
-      .eq('id', playerId);
+      // Update player status to pending_verification
+      const { error: updateError } = await supabase
+        .from('players')
+        .update({ 
+          status: 'pending_verification',
+          approval_status: 'pending_verification',
+          email_sent: true,
+          email_sent_at: new Date().toISOString()
+        })
+        .eq('id', playerId);
 
-    if (updateError) throw updateError;
+      if (updateError) throw updateError;
 
-    // Send approval email if email exists
-    if (player.email) {
-      try {
-        const response = await fetch('http://localhost:5000/api/email/send-approval', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: player.email,
-            name: player.fullname,
-            playerId: player.id
-          })
-        });
+      // Send email using EmailJS
+      if (player.email) {
+        try {
+          const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+          const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+          const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-        const result = await response.json();
-        
-        if (result.success) {
-          setSuccess(`✅ ${player.fullname} approved! Verification email sent to ${player.email}`);
-        } else {
-          setSuccess(`✅ ${player.fullname} approved! But email failed: ${result.message}`);
+          const templateParams = {
+            player_name: player.fullname,
+            verify_yes_url: `${window.location.origin}/verify-email?token=${player.id}&response=yes`,
+            verify_no_url: `${window.location.origin}/verify-email?token=${player.id}&response=no`,
+            to_email: player.email
+          };
+
+          const response = await emailjs.send(
+            SERVICE_ID,
+            TEMPLATE_ID,
+            templateParams,
+            PUBLIC_KEY
+          );
+
+          if (response.status === 200) {
+            setSuccess(`✅ Verification email sent to ${player.email}! Player will be approved after verification.`);
+          } else {
+            setSuccess(`✅ Player updated! But email could not be sent.`);
+          }
+        } catch (emailError) {
+          console.error('Email error:', emailError);
+          setSuccess(`✅ Player updated! But email could not be sent.`);
         }
-      } catch (emailError) {
-        console.error('Email error:', emailError);
-        setSuccess(`✅ ${player.fullname} approved! But email could not be sent.`);
+      } else {
+        // If no email, approve directly
+        const { error: directUpdate } = await supabase
+          .from('players')
+          .update({ 
+            status: 'approved',
+            approval_status: 'approved'
+          })
+          .eq('id', playerId);
+
+        if (directUpdate) throw directUpdate;
+        setSuccess(`✅ ${player.fullname} approved! (No email provided)`);
       }
-    } else {
-      setSuccess(`✅ ${player.fullname} approved! (No email address provided)`);
+      
+      await fetchAllData();
+      setTimeout(() => setSuccess(''), 5000);
+      
+    } catch (error) {
+      console.error('Error approving player:', error);
+      setError('❌ Failed to approve player: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-    
-    await fetchAllData();
-    setTimeout(() => setSuccess(''), 5000);
-    
-  } catch (error) {
-    console.error('Error approving player:', error);
-    setError('❌ Failed to approve player: ' + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const deletePlayer = async (playerId) => {
     if (!window.confirm('Are you sure you want to delete this player?')) return;
