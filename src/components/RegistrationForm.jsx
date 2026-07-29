@@ -189,7 +189,7 @@ const RegistrationForm = () => {
 
       setMessage({ 
         type: 'success', 
-        text: `✅ Registration successful! Welcome to Hyderabadi Boyz!` 
+        text: ` Registration successful! Welcome to Hyderabadi Boyz!` 
       });
       
       setFormData({
