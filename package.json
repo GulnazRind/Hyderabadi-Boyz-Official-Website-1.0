@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@remixicon/react": "^4.9.0",
     "@supabase/storage-js": "^2.110.8",
     "@supabase/supabase-js": "^2.38.0",
