@@ -13,7 +13,6 @@ const AdminPanel = () => {
   const [matchResult, setMatchResult] = useState({ matchId: '', winner: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [autoDeleteDays, setAutoDeleteDays] = useState(2);
   const [newTournament, setNewTournament] = useState({
     name: '',
     date: '',
@@ -37,16 +36,12 @@ const AdminPanel = () => {
     }
     fetchAllData();
     
-    const deleteInterval = setInterval(() => {
-      deleteOldCompletedMatches();
-    }, 3600000);
     
     const statusInterval = setInterval(() => {
       updateTournamentStatuses();
     }, 60000);
     
     return () => {
-      clearInterval(deleteInterval);
       clearInterval(statusInterval);
     };
   }, []);
@@ -392,91 +387,98 @@ const AdminPanel = () => {
       setLoading(false);
     }
   };
+// =============================================
+// APPROVE PLAYER WITH EMAILJS (NEW)
+// =============================================
+const approvePlayer = async (playerId) => {
+  try {
+    setError('');
+    setLoading(true);
+    
+    // Get player details
+    const { data: player, error: fetchError } = await supabase
+      .from('players')
+      .select('*')
+      .eq('id', playerId)
+      .single();
 
-    // =============================================
-  // PLAYER MANAGEMENT - COMPLETE (With EmailJS)
-  // =============================================
-  const approvePlayer = async (playerId) => {
-    try {
-      setError('');
-      setLoading(true);
-      
-      // Get player details
-      const { data: player, error: fetchError } = await supabase
-        .from('players')
-        .select('*')
-        .eq('id', playerId)
-        .single();
+    if (fetchError) throw fetchError;
 
-      if (fetchError) throw fetchError;
+    // Generate verification token
+    const token = `${player.id}_${Date.now()}`;
 
-      // Update player status to pending_verification
-      const { error: updateError } = await supabase
+    // Update player with token and pending status
+    const { error: updateError } = await supabase
+      .from('players')
+      .update({ 
+        status: 'pending_verification',
+        verification_token: token,
+        email_sent: false
+      })
+      .eq('id', playerId);
+
+    if (updateError) throw updateError;
+
+    // Send email using EmailJS
+    if (player.email) {
+      try {
+        const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+        const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+        const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+        const templateParams = {
+          player_name: player.fullname,
+          verify_yes_url: `${window.location.origin}/verify-email?token=${player.id}&response=yes`,
+          verify_no_url: `${window.location.origin}/verify-email?token=${player.id}&response=no`,
+          to_email: player.email
+        };
+
+        const response = await emailjs.send(
+          SERVICE_ID,
+          TEMPLATE_ID,
+          templateParams,
+          PUBLIC_KEY
+        );
+
+        if (response.status === 200) {
+          // Update email_sent status
+          await supabase
+            .from('players')
+            .update({ email_sent: true })
+            .eq('id', playerId);
+            
+          setSuccess(`✅ Verification email sent to ${player.email}! Player will be approved after verification.`);
+        } else {
+          setSuccess(`✅ Player updated! But email could not be sent.`);
+        }
+      } catch (emailError) {
+        console.error('Email error:', emailError);
+        setSuccess(`✅ Player updated! But email could not be sent.`);
+      }
+    } else {
+      // If no email, approve directly
+      const { error: directUpdate } = await supabase
         .from('players')
         .update({ 
-          status: 'pending_verification',
-          approval_status: 'pending_verification',
-          email_sent: true,
-          email_sent_at: new Date().toISOString()
+          status: 'approved',
+          email_verified: true
         })
         .eq('id', playerId);
 
-      if (updateError) throw updateError;
-
-      // Send email using EmailJS
-      if (player.email) {
-        try {
-          const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-          const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-          const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-
-          const templateParams = {
-            player_name: player.fullname,
-            verify_yes_url: `${window.location.origin}/verify-email?token=${player.id}&response=yes`,
-            verify_no_url: `${window.location.origin}/verify-email?token=${player.id}&response=no`,
-            to_email: player.email
-          };
-
-          const response = await emailjs.send(
-            SERVICE_ID,
-            TEMPLATE_ID,
-            templateParams,
-            PUBLIC_KEY
-          );
-
-          if (response.status === 200) {
-            setSuccess(`✅ Verification email sent to ${player.email}! Player will be approved after verification.`);
-          } else {
-            setSuccess(`✅ Player updated! But email could not be sent.`);
-          }
-        } catch (emailError) {
-          console.error('Email error:', emailError);
-          setSuccess(`✅ Player updated! But email could not be sent.`);
-        }
-      } else {
-        // If no email, approve directly
-        const { error: directUpdate } = await supabase
-          .from('players')
-          .update({ 
-            status: 'approved',
-            approval_status: 'approved'
-          })
-          .eq('id', playerId);
-
-        if (directUpdate) throw directUpdate;
-        setSuccess(`✅ ${player.fullname} approved! (No email provided)`);
-      }
-      
-      await fetchAllData();
-      setTimeout(() => setSuccess(''), 5000);
-      
-    } catch (error) {
-      console.error('Error approving player:', error);
-      setError('❌ Failed to approve player: ' + error.message);
-    } finally {
-      setLoading(false);
+      if (directUpdate) throw directUpdate;
+      setSuccess(`✅ ${player.fullname} approved! (No email provided)`);
     }
-  };
+    
+    await fetchAllData();
+    setTimeout(() => setSuccess(''), 5000);
+    
+  } catch (error) {
+    console.error('Error approving player:', error);
+    setError('❌ Failed to approve player: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const deletePlayer = async (playerId) => {
     if (!window.confirm('Are you sure you want to delete this player?')) return;
@@ -524,36 +526,7 @@ const AdminPanel = () => {
     return `${minutes}m`;
   };
 
-  const getTimeUntilDeletion = (match) => {
-    if (!match.completed_at) return null;
-    
-    const completedDate = new Date(match.completed_at);
-    const deletionDate = new Date(completedDate.getTime() + (autoDeleteDays * 24 * 60 * 60 * 1000));
-    const now = new Date();
-    const diff = deletionDate - now;
-    
-    if (diff <= 0) return 'Deleting soon...';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `${days}d ${hours % 24}h remaining`;
-    }
-    return `${hours}h ${minutes}m remaining`;
-  };
 
-  const isMatchExpiring = (match) => {
-    if (!match.completed_at) return false;
-    
-    const completedDate = new Date(match.completed_at);
-    const deletionDate = new Date(completedDate.getTime() + (autoDeleteDays * 24 * 60 * 60 * 1000));
-    const now = new Date();
-    const diff = deletionDate - now;
-    
-    return diff < 24 * 60 * 60 * 1000;
-  };
 
   const weightCategories = [...new Set(players.map(p => p.weightcategory))];
 
@@ -1125,26 +1098,24 @@ const AdminPanel = () => {
               </span>
             </div>
             
-            {/* =============================================
-                PLAYER DETAILS - YAHAN PE CHANGE KARNA HAI
-                ============================================= */}
-            <div style={{ color: '#ccc', lineHeight: '2' }}>
+           {/* PLAYER DETAILS - UPDATED */}
+<div style={{ color: '#ccc', lineHeight: '2' }}>
   <p>📱 Phone: {player.phone}</p>
   <p>⚖️ Weight: {player.weightcategory}</p>
   <p>⭐ Experience: {player.experience}</p>
   <p>💪 Dominant: {player.dominantarm}</p>
   <p>✉️ Email: {player.email || 'N/A'}</p>
   <p>
-    📊 Approval Status: 
+    📊 Status: 
     <span style={{
-      color: player.approval_status === 'approved' ? '#2ecc71' : 
-             player.approval_status === 'pending_verification' ? '#f39c12' : 
-             player.approval_status === 'rejected' ? '#e74c3c' : '#888',
+      color: player.status === 'approved' ? '#2ecc71' : 
+             player.status === 'pending_verification' ? '#f39c12' : 
+             player.status === 'rejected' ? '#e74c3c' : '#888',
       fontWeight: 'bold'
     }}>
-      {player.approval_status === 'approved' ? '✅ Approved' : 
-       player.approval_status === 'pending_verification' ? '⏳ Waiting for Verification' : 
-       player.approval_status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+      {player.status === 'approved' ? '✅ Approved' : 
+       player.status === 'pending_verification' ? '⏳ Waiting for Verification' : 
+       player.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
     </span>
   </p>
   <p>
@@ -1169,7 +1140,7 @@ const AdminPanel = () => {
   )}
   {player.email_sent && (
     <p style={{ color: '#888', fontSize: '0.85rem' }}>
-      📧 Email sent: {new Date(player.email_sent_at).toLocaleString()}
+      📧 Email sent: {new Date(player.created_at).toLocaleString()}
     </p>
   )}
 </div>
@@ -1232,16 +1203,7 @@ const AdminPanel = () => {
             gap: '1rem'
           }}>
             <h3 style={{ color: '#FFD700', margin: 0 }}>⚔️ All Matches ({matches.length})</h3>
-            <div style={{
-              padding: '0.5rem 1rem',
-              background: 'rgba(255,215,0,0.1)',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,215,0,0.2)'
-            }}>
-              ⏳ Auto-delete after: <span style={{ color: '#FFD700', fontWeight: 'bold' }}>
-                {autoDeleteDays} day{autoDeleteDays > 1 ? 's' : ''}
-              </span>
-            </div>
+            
           </div>
           
           {matches.length === 0 ? (
@@ -1261,8 +1223,6 @@ const AdminPanel = () => {
               gap: '1.5rem'
             }}>
               {matches.map(match => {
-                const expiring = isMatchExpiring(match);
-                const timeLeft = getTimeUntilDeletion(match);
                 
                 return (
                   <div
@@ -1340,21 +1300,7 @@ const AdminPanel = () => {
                       🏷️ Category: <span style={{ color: '#FFD700' }}>{match.category}</span>
                     </p>
                     
-                    {match.status === 'completed' && match.completed_at && (
-                      <div style={{
-                        marginTop: '0.5rem',
-                        padding: '0.5rem',
-                        background: expiring ? 'rgba(231, 76, 60, 0.1)' : 'rgba(46, 204, 113, 0.1)',
-                        borderRadius: '8px',
-                        border: `1px solid ${expiring ? '#e74c3c' : '#2ecc71'}`,
-                        textAlign: 'center'
-                      }}>
-                        <span style={{ color: expiring ? '#e74c3c' : '#2ecc71' }}>
-                          {expiring ? '⚠️ ' : '⏳ '}
-                          {timeLeft || 'Deleting soon...'}
-                        </span>
-                      </div>
-                    )}
+                    
                     
                     {match.status !== 'completed' && (
                       <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,215,0,0.1)', paddingTop: '1rem' }}>
@@ -1420,32 +1366,7 @@ const AdminPanel = () => {
             </p>
           </div>
           
-          <div className="form-group">
-            <label style={{ color: '#FFD700', display: 'block', marginBottom: '0.5rem' }}>
-              ⏳ Auto-Delete Completed Matches After
-            </label>
-            <select 
-              value={autoDeleteDays} 
-              onChange={(e) => setAutoDeleteDays(parseInt(e.target.value))}
-              style={{
-                width: '100%',
-                padding: '0.8rem',
-                background: '#0a0a0a',
-                color: 'white',
-                border: '1px solid #FFD700',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                marginBottom: '1.5rem'
-              }}
-            >
-              <option value={1}>1 Day</option>
-              <option value={2}>2 Days</option>
-              <option value={3}>3 Days</option>
-              <option value={5}>5 Days</option>
-              <option value={7}>7 Days</option>
-              <option value={14}>14 Days</option>
-            </select>
-          </div>
+          
           
           <div className="form-group">
             <label style={{ color: '#FFD700', display: 'block', marginBottom: '0.5rem' }}>
@@ -1512,12 +1433,6 @@ const AdminPanel = () => {
               • Weight categories: <span style={{ color: '#FFD700' }}>{weightCategories.length}</span>
               <br />
               • Total matches: <span style={{ color: '#FFD700' }}>{matches.length}</span>
-              <br />
-              • Auto-delete after: <span style={{ color: '#FFD700' }}>{autoDeleteDays} day{autoDeleteDays > 1 ? 's' : ''}</span>
-              <br />
-              <span style={{ color: '#e74c3c', fontSize: '0.9rem' }}>
-                ⚠️ Completed matches will be automatically deleted after {autoDeleteDays} day{autoDeleteDays > 1 ? 's' : ''}
-              </span>
             </p>
           </div>
         </div>

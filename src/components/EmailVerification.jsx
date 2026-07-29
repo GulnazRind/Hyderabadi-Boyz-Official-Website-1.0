@@ -19,29 +19,53 @@ const EmailVerification = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      // Get player details
+      const { data: player, error: fetchError } = await supabase
         .from('players')
-        .update({ 
-          email_verified: response === 'yes',
-          verification_response: response,
-          verified_at: new Date().toISOString()
-        })
-        .eq('id', token);
-
-      if (error) throw error;
-
-      const { data: playerData } = await supabase
-        .from('players')
-        .select('fullname')
+        .select('*')
         .eq('id', token)
         .single();
 
-      setResult({
-        success: true,
-        message: response === 'yes' 
-          ? `Thank you ${playerData?.fullname || 'Player'}! Your registration has been verified. You are now officially part of Hyderabadi Boyz! 🎉`
-          : `We've noted your response. Your registration will be reviewed by our team.`
-      });
+      if (fetchError) throw fetchError;
+
+      if (response === 'yes') {
+        // Update player: APPROVED
+        const { error } = await supabase
+          .from('players')
+          .update({ 
+            status: 'approved',
+            email_verified: true,
+            verification_response: 'yes',
+            verified_at: new Date().toISOString()
+          })
+          .eq('id', token);
+
+        if (error) throw error;
+
+        setResult({
+          success: true,
+          message: `Thank you ${player.fullname}! Your registration has been verified. You are now officially part of Hyderabadi Boyz! 🎉`
+        });
+
+      } else {
+        // Player said NO
+        const { error } = await supabase
+          .from('players')
+          .update({ 
+            status: 'pending',
+            email_verified: false,
+            verification_response: 'no',
+            verified_at: new Date().toISOString()
+          })
+          .eq('id', token);
+
+        if (error) throw error;
+
+        setResult({
+          success: true,
+          message: 'We\'ve noted your response. Your registration will be reviewed by our team.'
+        });
+      }
 
     } catch (error) {
       console.error('Verification error:', error);
@@ -111,14 +135,6 @@ const EmailVerification = () => {
         borderRadius: '8px',
         fontWeight: 'bold',
         transition: 'all 0.3s ease'
-      }}
-      onMouseEnter={(e) => {
-        e.target.style.transform = 'translateY(-3px)';
-        e.target.style.boxShadow = '0 10px 30px rgba(255,215,0,0.3)';
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.transform = 'translateY(0)';
-        e.target.style.boxShadow = 'none';
       }}>
         🏠 Go to Home
       </Link>
