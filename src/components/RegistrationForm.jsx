@@ -110,8 +110,13 @@ const RegistrationForm = () => {
         }
       }
 
-      // Check duplicates for CNIC
-      if (formData.cnic.trim()) {
+
+            // =============================================
+      // DUPLICATE CHECKS (Only check if ID is provided)
+      // =============================================
+      
+      // Check CNIC duplicate (only if user selected CNIC and entered a value)
+      if (formData.idType === 'cnic' && formData.cnic.trim()) {
         const { data: existingPlayer, error: checkError } = await supabase
           .from('players')
           .select('cnic')
@@ -125,8 +130,8 @@ const RegistrationForm = () => {
         }
       }
 
-      // Check duplicates for Form-B
-      if (formData.formNumber.trim()) {
+      // Check Form-B duplicate (only if user selected Form-B and entered a value)
+      if (formData.idType === 'form-b' && formData.formNumber.trim()) {
         const { data: existingPlayer, error: checkError } = await supabase
           .from('players')
           .select('form_number')
@@ -140,8 +145,8 @@ const RegistrationForm = () => {
         }
       }
 
-      // Check duplicates for Passport
-      if (formData.passportNumber.trim()) {
+      // Check Passport duplicate (only if user selected Passport and entered a value)
+      if (formData.idType === 'passport' && formData.passportNumber.trim()) {
         const { data: existingPlayer, error: checkError } = await supabase
           .from('players')
           .select('passport_number')
