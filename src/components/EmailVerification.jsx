@@ -12,6 +12,12 @@ const EmailVerification = () => {
   useEffect(() => {
     if (token && response) {
       verifyEmail();
+    } else {
+      setLoading(false);
+      setResult({
+        success: false,
+        message: 'Invalid verification link. Please contact support.'
+      });
     }
   }, [token, response]);
 
@@ -26,7 +32,14 @@ const EmailVerification = () => {
         .eq('id', token)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        setResult({
+          success: false,
+          message: 'Player not found. Please contact support.'
+        });
+        setLoading(false);
+        return;
+      }
 
       if (response === 'yes') {
         // Update player: APPROVED
@@ -44,10 +57,10 @@ const EmailVerification = () => {
 
         setResult({
           success: true,
-          message: `Thank you ${player.fullname}! Your registration has been verified. You are now officially part of Mini Junior ArmWrestling Tournament! 🎉`
+          message: `Thank you ${player.fullname}! Your registration has been verified. You are now officially part of Hyderabadi Boyz! 🎉`
         });
 
-      } else {
+      } else if (response === 'no') {
         // Player said NO
         const { error } = await supabase
           .from('players')
@@ -64,6 +77,11 @@ const EmailVerification = () => {
         setResult({
           success: true,
           message: 'We\'ve noted your response. Your registration will be reviewed by our team.'
+        });
+      } else {
+        setResult({
+          success: false,
+          message: 'Invalid response. Please contact support.'
         });
       }
 

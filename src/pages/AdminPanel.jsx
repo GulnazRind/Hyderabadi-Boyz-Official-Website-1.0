@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
-import emailjs from '@emailjs/browser';
+
 
 const AdminPanel = () => {
   const [players, setPlayers] = useState([]);
@@ -10,7 +10,7 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tournaments');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [matchResult, setMatchResult] = useState({ matchId: '', winner: '' });
+  
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [newTournament, setNewTournament] = useState({
@@ -387,15 +387,16 @@ const AdminPanel = () => {
       setLoading(false);
     }
   };
-// =============================================
-// APPROVE PLAYER WITH EMAILJS (UPDATED)
+
+
+  // =============================================
+// APPROVE PLAYER - MANUAL VERIFICATION (No Email)
 // =============================================
 const approvePlayer = async (playerId) => {
   try {
     setError('');
     setLoading(true);
     
-    // Get player details
     const { data: player, error: fetchError } = await supabase
       .from('players')
       .select('*')
@@ -404,66 +405,19 @@ const approvePlayer = async (playerId) => {
 
     if (fetchError) throw fetchError;
 
-    // Update player with pending status (only existing columns)
-    const updateData = {
-      status: 'pending_verification'
-    };
-    
-    // Only add if column exists
-    try {
-      const { error: updateError } = await supabase
-        .from('players')
-        .update(updateData)
-        .eq('id', playerId);
+    // Directly approve player
+    const { error: updateError } = await supabase
+      .from('players')
+      .update({ 
+        status: 'approved',
+        email_verified: true,
+        verified_at: new Date().toISOString()
+      })
+      .eq('id', playerId);
 
-      if (updateError) throw updateError;
-    } catch (updateError) {
-      console.log('Update error:', updateError);
-    }
+    if (updateError) throw updateError;
 
-    // Send email using EmailJS
-    if (player.email) {
-      try {
-        const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-        const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-        const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-
-        const templateParams = {
-          player_name: player.fullname,
-          verify_yes_url: `${window.location.origin}/verify-email?token=${player.id}&response=yes`,
-          verify_no_url: `${window.location.origin}/verify-email?token=${player.id}&response=no`,
-          to_email: player.email
-        };
-
-        const response = await emailjs.send(
-          SERVICE_ID,
-          TEMPLATE_ID,
-          templateParams,
-          PUBLIC_KEY
-        );
-
-        if (response.status === 200) {
-          setSuccess(`✅ Verification email sent to ${player.email}!`);
-        } else {
-          setSuccess(`✅ Player updated! But email could not be sent.`);
-        }
-      } catch (emailError) {
-        console.error('Email error:', emailError);
-        setSuccess(`✅ Player updated! But email could not be sent.`);
-      }
-    } else {
-      // If no email, approve directly
-      const { error: directUpdate } = await supabase
-        .from('players')
-        .update({ 
-          status: 'approved'
-        })
-        .eq('id', playerId);
-
-      if (directUpdate) throw directUpdate;
-      setSuccess(`✅ ${player.fullname} approved! (No email provided)`);
-    }
-    
+    setSuccess(`✅ ${player.fullname} has been approved successfully!`);
     await fetchAllData();
     setTimeout(() => setSuccess(''), 5000);
     
@@ -475,30 +429,34 @@ const approvePlayer = async (playerId) => {
   }
 };
 
-  const deletePlayer = async (playerId) => {
-    if (!window.confirm('Are you sure you want to delete this player?')) return;
+// =============================================
+// DELETE PLAYER
+// =============================================
+const deletePlayer = async (playerId) => {
+  if (!window.confirm('Are you sure you want to delete this player?')) return;
+  
+  try {
+    setError('');
+    setLoading(true);
     
-    try {
-      setError('');
-      setLoading(true);
-      
-      const { error } = await supabase
-        .from('players')
-        .delete()
-        .eq('id', playerId);
+    const { error } = await supabase
+      .from('players')
+      .delete()
+      .eq('id', playerId);
 
-      if (error) throw error;
-      await fetchAllData();
-      setSuccess('✅ Player deleted successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-      
-    } catch (error) {
-      console.error('Error deleting player:', error);
-      setError('❌ Failed to delete player: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (error) throw error;
+    await fetchAllData();
+    setSuccess('✅ Player deleted successfully!');
+    setTimeout(() => setSuccess(''), 3000);
+    
+  } catch (error) {
+    console.error('Error deleting player:', error);
+    setError('❌ Failed to delete player: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // =============================================
   // HELPER FUNCTIONS
@@ -1227,8 +1185,8 @@ const approvePlayer = async (playerId) => {
                       borderRadius: '15px',
                       padding: '1.5rem',
                       border: match.status === 'completed' 
-                        ? (expiring ? '2px solid #e74c3c' : '1px solid #2ecc71')
-                        : '1px solid rgba(255,215,0,0.2)'
+  ? '1px solid #2ecc71'
+  : '1px solid rgba(255,215,0,0.2)'
                     }}
                   >
                     <div style={{
@@ -1244,18 +1202,14 @@ const approvePlayer = async (playerId) => {
                         fontSize: '0.8rem',
                         fontWeight: 'bold',
                         background: match.status === 'completed' 
-                          ? (expiring ? 'rgba(231, 76, 60, 0.2)' : 'rgba(46, 204, 113, 0.2)')
-                          : 'rgba(243, 156, 18, 0.2)',
+  ? 'rgba(46, 204, 113, 0.2)'
+  : 'rgba(243, 156, 18, 0.2)',
                         color: match.status === 'completed' 
-                          ? (expiring ? '#e74c3c' : '#2ecc71')
-                          : '#f39c12',
-                        border: `1px solid ${match.status === 'completed' 
-                          ? (expiring ? '#e74c3c' : '#2ecc71')
-                          : '#f39c12'}`
+  ? '#2ecc71'
+  : '#f39c12',
+                        border: `1px solid ${match.status === 'completed' ? '#2ecc71' : '#f39c12'}`
                       }}>
-                        {match.status === 'completed' 
-                          ? (expiring ? '⚠️ Expiring Soon' : '✅ Completed')
-                          : '⏳ Pending'}
+                        {match.status === 'completed' ? '✅ Completed' : '⏳ Pending'}
                       </span>
                     </div>
                     
